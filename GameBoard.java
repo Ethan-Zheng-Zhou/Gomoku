@@ -6,8 +6,12 @@ import java.io.*;
 
 public class GameBoard extends JFrame {
     private static final int BOARD_SIZE = 15;
-    private static final int CELL_SIZE = 40;
-    private static final int MARGIN = 20;
+    private static final int CELL_SIZE = 45;  // 增加格子大小
+    private static final int MARGIN = 30;     // 增加边距
+    private static final Color BACKGROUND_COLOR = new Color(245, 245, 245);
+    private static final Color BOARD_COLOR = new Color(210, 180, 140);
+    private static final Color GRID_COLOR = new Color(101, 67, 33);
+    private static final Color CONTROL_PANEL_COLOR = new Color(232, 232, 232);
     
     private int[][] board = new int[BOARD_SIZE][BOARD_SIZE]; // 0:空, 1:黑, 2:白
     private boolean isBlackTurn = true;
@@ -19,6 +23,8 @@ public class GameBoard extends JFrame {
     private BoardPanel boardPanel; // 添加成员变量
     private boolean isAIMode;
     private GomokuAI ai;
+    private int moveCount = 0;
+    private JLabel moveCountLabel;
     
     public GameBoard(boolean isAIMode) {
         this.isAIMode = isAIMode;
@@ -29,37 +35,68 @@ public class GameBoard extends JFrame {
             setTitle("五子棋 - 玩家对战模式");
         }
         
-        setSize(BOARD_SIZE * CELL_SIZE + 2 * MARGIN + 200, BOARD_SIZE * CELL_SIZE + 2 * MARGIN);
+        // 调整窗口大小，确保能完整显示棋盘
+        int windowWidth = BOARD_SIZE * CELL_SIZE + 2 * MARGIN + 300;  // 增加宽度以容纳右侧面板
+        int windowHeight = BOARD_SIZE * CELL_SIZE + 2 * MARGIN + 150; // 增加高度以容纳工具栏和边距
+        setSize(windowWidth, windowHeight);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
         
-        // 创建菜单栏
+        setLayout(new BorderLayout(20, 20));  // 增加组件之间的间距
+        
+        // 创建工具栏
         createMenuBar();
         
         // 创建右侧控制面板
         JPanel controlPanel = new JPanel();
         controlPanel.setLayout(new BoxLayout(controlPanel, BoxLayout.Y_AXIS));
+        controlPanel.setBackground(CONTROL_PANEL_COLOR);
+        controlPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
         
-        // 添加计时器标签
+        // 添加手数显示标签
+        moveCountLabel = new JLabel("当前手数: 0");
+        moveCountLabel.setFont(new Font("微软雅黑", Font.PLAIN, 14));
+        moveCountLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        
+        // 设置计时器标签样式
         timeLabel = new JLabel("黑方用时: 0:00  白方用时: 0:00");
-        controlPanel.add(timeLabel);
+        timeLabel.setFont(new Font("微软雅黑", Font.PLAIN, 14));
+        timeLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
         
-        // 添加悔棋按钮
-        JButton undoButton = new JButton("悔棋");
+        // 创建按钮
+        JButton undoButton = createStyledButton("悔棋");
+        JButton resetButton = createStyledButton("重新开始");
+        
+        // 添加按钮事件
         undoButton.addActionListener(e -> undoMove());
+        resetButton.addActionListener(e -> resetGame());
+        
+        // 添加组件到控制面板
+        controlPanel.add(moveCountLabel);
+        controlPanel.add(Box.createRigidArea(new Dimension(0, 10)));
+        controlPanel.add(timeLabel);
+        controlPanel.add(Box.createRigidArea(new Dimension(0, 20)));
         controlPanel.add(undoButton);
+        controlPanel.add(Box.createRigidArea(new Dimension(0, 10)));
+        controlPanel.add(resetButton);
         
-        // 添加重新开始按钮
-        JButton restartButton = new JButton("重新开始");
-        restartButton.addActionListener(e -> resetGame());
-        controlPanel.add(restartButton);
+        // 创建一个包装棋盘的面板，用于居中
+        JPanel boardWrapper = new JPanel(new GridBagLayout());
+        boardWrapper.setBackground(BACKGROUND_COLOR);
         
-        // 初始化棋盘面板
+        // 创建棋盘面板
         boardPanel = new BoardPanel();
+        boardPanel.setPreferredSize(new Dimension(
+            BOARD_SIZE * CELL_SIZE + 2 * MARGIN,
+            BOARD_SIZE * CELL_SIZE + 2 * MARGIN
+        ));
+        boardPanel.setBackground(BOARD_COLOR);
         
-        // 设置布局
-        setLayout(new BorderLayout());
-        add(boardPanel, BorderLayout.CENTER);
+        // 将棋盘添加到包装面板中以实现居中
+        boardWrapper.add(boardPanel);
+        
+        // 添加所有组件到窗口
+        add(boardWrapper, BorderLayout.CENTER);
         add(controlPanel, BorderLayout.EAST);
         
         // 初始化计时器
@@ -86,36 +123,60 @@ public class GameBoard extends JFrame {
         @Override
         protected void paintComponent(Graphics g) {
             super.paintComponent(g);
-            drawBoard(g);
-            drawPieces(g);
-        }
-        
-        private void drawBoard(Graphics g) {
+            Graphics2D g2 = (Graphics2D) g;
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            
+            // 绘制棋盘网格
+            g2.setColor(GRID_COLOR);
+            g2.setStroke(new BasicStroke(1.0f));
+            
+            // 画横线
             for (int i = 0; i < BOARD_SIZE; i++) {
-                g.drawLine(MARGIN, MARGIN + i * CELL_SIZE, 
-                          MARGIN + (BOARD_SIZE-1) * CELL_SIZE, MARGIN + i * CELL_SIZE);
-                g.drawLine(MARGIN + i * CELL_SIZE, MARGIN, 
-                          MARGIN + i * CELL_SIZE, MARGIN + (BOARD_SIZE-1) * CELL_SIZE);
+                g2.drawLine(
+                    MARGIN, 
+                    MARGIN + i * CELL_SIZE, 
+                    MARGIN + (BOARD_SIZE - 1) * CELL_SIZE, 
+                    MARGIN + i * CELL_SIZE
+                );
             }
-        }
-        
-        private void drawPieces(Graphics g) {
+            
+            // 画竖线
+            for (int i = 0; i < BOARD_SIZE; i++) {
+                g2.drawLine(
+                    MARGIN + i * CELL_SIZE, 
+                    MARGIN, 
+                    MARGIN + i * CELL_SIZE, 
+                    MARGIN + (BOARD_SIZE - 1) * CELL_SIZE
+                );
+            }
+            
+            // 绘制棋子
+            int pieceSize = (int)(CELL_SIZE * 0.8);
             for (int i = 0; i < BOARD_SIZE; i++) {
                 for (int j = 0; j < BOARD_SIZE; j++) {
                     if (board[i][j] == 1) {  // 黑子
-                        g.setColor(Color.BLACK);
-                        g.fillOval(MARGIN + i * CELL_SIZE - CELL_SIZE/3,
-                                  MARGIN + j * CELL_SIZE - CELL_SIZE/3,
-                                  CELL_SIZE*2/3, CELL_SIZE*2/3);
+                        g2.setColor(Color.BLACK);
+                        g2.fillOval(
+                            MARGIN + i * CELL_SIZE - pieceSize/2,
+                            MARGIN + j * CELL_SIZE - pieceSize/2,
+                            pieceSize,
+                            pieceSize
+                        );
                     } else if (board[i][j] == 2) {  // 白子
-                        g.setColor(Color.WHITE);
-                        g.fillOval(MARGIN + i * CELL_SIZE - CELL_SIZE/3,
-                                  MARGIN + j * CELL_SIZE - CELL_SIZE/3,
-                                  CELL_SIZE*2/3, CELL_SIZE*2/3);
-                        g.setColor(Color.BLACK);
-                        g.drawOval(MARGIN + i * CELL_SIZE - CELL_SIZE/3,
-                                  MARGIN + j * CELL_SIZE - CELL_SIZE/3,
-                                  CELL_SIZE*2/3, CELL_SIZE*2/3);
+                        g2.setColor(Color.WHITE);
+                        g2.fillOval(
+                            MARGIN + i * CELL_SIZE - pieceSize/2,
+                            MARGIN + j * CELL_SIZE - pieceSize/2,
+                            pieceSize,
+                            pieceSize
+                        );
+                        g2.setColor(Color.BLACK);
+                        g2.drawOval(
+                            MARGIN + i * CELL_SIZE - pieceSize/2,
+                            MARGIN + j * CELL_SIZE - pieceSize/2,
+                            pieceSize,
+                            pieceSize
+                        );
                     }
                 }
             }
@@ -123,27 +184,46 @@ public class GameBoard extends JFrame {
     }
     
     private void createMenuBar() {
-        JMenuBar menuBar = new JMenuBar();
+        JToolBar toolBar = new JToolBar();
+        toolBar.setFloatable(false);
+        toolBar.setBackground(BACKGROUND_COLOR);
+        toolBar.setBorderPainted(false);
         
-        JMenu gameMenu = new JMenu("游戏");
-        JMenuItem newGame = new JMenuItem("新游戏");
-        JMenuItem saveGame = new JMenuItem("保存游戏");
-        JMenuItem loadGame = new JMenuItem("加载游戏");
-        JMenuItem exit = new JMenuItem("退出");
+        // 添加返回按钮
+        JButton backBtn = createToolBarButton("返回主菜单");
+        JButton newGameBtn = createToolBarButton("新游戏");
+        JButton saveGameBtn = createToolBarButton("保存游戏");
+        JButton loadGameBtn = createToolBarButton("加载游戏");
         
-        newGame.addActionListener(e -> resetGame());
-        saveGame.addActionListener(e -> saveGame());
-        loadGame.addActionListener(e -> loadGame());
-        exit.addActionListener(e -> System.exit(0));
+        // 返回按钮事件
+        backBtn.addActionListener(e -> {
+            int result = JOptionPane.showConfirmDialog(
+                this,
+                "确定要返回主菜单吗？当前游戏进度将丢失。",
+                "返回确认",
+                JOptionPane.YES_NO_OPTION
+            );
+            if (result == JOptionPane.YES_OPTION) {
+                dispose(); // 关闭当前游戏窗口
+                new StartScreen().setVisible(true); // 打开开始界面
+            }
+        });
         
-        gameMenu.add(newGame);
-        gameMenu.add(saveGame);
-        gameMenu.add(loadGame);
-        gameMenu.addSeparator();
-        gameMenu.add(exit);
+        newGameBtn.addActionListener(e -> resetGame());
+        saveGameBtn.addActionListener(e -> saveGame());
+        loadGameBtn.addActionListener(e -> loadGame());
         
-        menuBar.add(gameMenu);
-        setJMenuBar(menuBar);
+        // 添加按钮到工具栏
+        toolBar.add(backBtn);
+        toolBar.addSeparator(new Dimension(20, 0));  // 加大与其他按钮的间距
+        toolBar.add(newGameBtn);
+        toolBar.addSeparator(new Dimension(10, 0));
+        toolBar.add(saveGameBtn);
+        toolBar.addSeparator(new Dimension(10, 0));
+        toolBar.add(loadGameBtn);
+        
+        // 确保工具栏添加到 NORTH 位置
+        add(toolBar, BorderLayout.NORTH);
     }
     
     private void initializeTimer() {
@@ -193,6 +273,8 @@ public class GameBoard extends JFrame {
     private void makeMove(int x, int y) {
         board[x][y] = isBlackTurn ? 1 : 2;
         moveHistory.push(new Move(x, y, isBlackTurn));
+        moveCount++;
+        moveCountLabel.setText("当前手数: " + moveCount);
         
         if (checkWin(x, y)) {
             gameTimer.stop();
@@ -221,6 +303,8 @@ public class GameBoard extends JFrame {
             Move lastMove = moveHistory.pop();
             board[lastMove.x][lastMove.y] = 0;
             isBlackTurn = lastMove.isBlack;
+            moveCount--;
+            moveCountLabel.setText("当前手数: " + moveCount);
             repaint();
         }
     }
@@ -230,7 +314,9 @@ public class GameBoard extends JFrame {
         isBlackTurn = true;
         blackTime = 0;
         whiteTime = 0;
+        moveCount = 0;
         moveHistory.clear();
+        moveCountLabel.setText("当前手数: 0");
         updateTimeLabel();
         gameTimer.restart();
         repaint();
@@ -281,5 +367,42 @@ public class GameBoard extends JFrame {
         } catch (IOException | ClassNotFoundException e) {
             JOptionPane.showMessageDialog(this, "加载失败: " + e.getMessage());
         }
+    }
+    
+    // 添加创建样式化按钮的方法
+    private JButton createStyledButton(String text) {
+        JButton button = new JButton(text);
+        button.setFont(new Font("微软雅黑", Font.PLAIN, 14));
+        button.setPreferredSize(new Dimension(120, 35));
+        button.setMaximumSize(new Dimension(120, 35));
+        button.setFocusPainted(false);
+        button.setBackground(new Color(70, 130, 180));
+        button.setForeground(Color.WHITE);
+        button.setBorder(BorderFactory.createEmptyBorder(5, 15, 5, 15));
+        button.setAlignmentX(Component.CENTER_ALIGNMENT);
+        return button;
+    }
+    
+    // 添加创���工具栏按钮的辅助方法
+    private JButton createToolBarButton(String text) {
+        JButton button = new JButton(text);
+        button.setFont(new Font("微软雅黑", Font.PLAIN, 14));
+        button.setFocusPainted(false);
+        button.setBorderPainted(false);
+        button.setBackground(BACKGROUND_COLOR);
+        button.setForeground(new Color(70, 130, 180));
+        
+        // 添加鼠标悬停效果
+        button.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                button.setBackground(new Color(230, 230, 230));
+            }
+
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                button.setBackground(BACKGROUND_COLOR);
+            }
+        });
+        
+        return button;
     }
 }
