@@ -16,9 +16,13 @@ public class GameBoard extends JFrame {
     private Timer timer;
     private int blackSeconds = 0;
     private int whiteSeconds = 0;
+    private GomokuAI ai;
     
     public GameBoard(GomokuGame game) {
         this.game = game;
+        if (game.isAIGame()) {
+            this.ai = new GomokuAI();
+        }
         initializeUI();
         startTimer();
     }
@@ -237,8 +241,39 @@ public class GameBoard extends JFrame {
     }
     
     private void makeAIMove() {
-        // AI移动逻辑
-        // ... 
+        if (ai != null) {
+            // 创建新线程执行 AI 移动，避免界面卡顿
+            new Thread(() -> {
+                // 获取 AI 的最佳移动
+                GomokuAI.Move bestMove = ai.findBestMove(game.getBoard());
+                
+                // 在 EDT 中执行 UI 更新
+                SwingUtilities.invokeLater(() -> {
+                    if (bestMove != null && bestMove.x != -1 && bestMove.y != -1) {
+                        if (game.makeMove(bestMove.x, bestMove.y)) {
+                            boardPanel.repaint();
+                            updateInfoPanel();
+                            
+                            // 检查 AI 是否获胜
+                            if (game.checkWin(bestMove.x, bestMove.y)) {
+                                timer.stop();
+                                String winner = "白方";
+                                game.gameOver(winner);
+                                JOptionPane.showMessageDialog(GameBoard.this, winner + "获胜！");
+                                dispose();
+                                new StartScreen().setVisible(true);
+                            } else if (game.isBoardFull()) {
+                                timer.stop();
+                                game.gameOver("平局");
+                                JOptionPane.showMessageDialog(GameBoard.this, "平局！");
+                                dispose();
+                                new StartScreen().setVisible(true);
+                            }
+                        }
+                    }
+                });
+            }).start();
+        }
     }
     
     private void drawBoard(Graphics g) {
