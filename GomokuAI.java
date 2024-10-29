@@ -8,8 +8,8 @@ public class GomokuAI {
     private static final int WHITE = 2;
     private static final int SEARCH_DEPTH = 4;
     private static final int WIN_SCORE = 100000;
-    private static final int MAX_DEPTH = 8; // 将最大搜索深度限制在8层
-    private static final long TIME_LIMIT = 5000; // 10秒时间限制
+    private static final int MAX_DEPTH = 4; // 将最大搜索深度限制在8层
+    private static final long TIME_LIMIT = 3000; // 10秒时间限制
     private long startTime;
     
     // 方向数组，用于检查八个方向
@@ -31,7 +31,12 @@ public class GomokuAI {
     
     public Move findBestMove(int[][] board) {
         startTime = System.currentTimeMillis();
-        return minimax(board, MAX_DEPTH, Integer.MIN_VALUE, Integer.MAX_VALUE, true);
+        // 创建棋盘副本
+        int[][] boardCopy = new int[board.length][board.length];
+        for (int i = 0; i < board.length; i++) {
+            boardCopy[i] = board[i].clone();
+        }
+        return minimax(boardCopy, MAX_DEPTH, Integer.MIN_VALUE, Integer.MAX_VALUE, true);
     }
     
     private Move minimax(int[][] board, int depth, int alpha, int beta, boolean isMaximizing) {
@@ -57,9 +62,13 @@ public class GomokuAI {
         if (isMaximizing) {
             int maxEval = Integer.MIN_VALUE;
             for (Point move : moves) {
-                board[move.x][move.y] = BLACK;
-                int eval = minimax(board, depth - 1, alpha, beta, false).score;
-                board[move.x][move.y] = EMPTY;
+                // 创建棋盘副本进行尝试
+                int[][] boardCopy = new int[board.length][board.length];
+                for (int i = 0; i < board.length; i++) {
+                    boardCopy[i] = board[i].clone();
+                }
+                boardCopy[move.x][move.y] = BLACK;
+                int eval = minimax(boardCopy, depth - 1, alpha, beta, false).score;
                 
                 if (eval > maxEval) {
                     maxEval = eval;
@@ -71,9 +80,13 @@ public class GomokuAI {
         } else {
             int minEval = Integer.MAX_VALUE;
             for (Point move : moves) {
-                board[move.x][move.y] = WHITE;
-                int eval = minimax(board, depth - 1, alpha, beta, true).score;
-                board[move.x][move.y] = EMPTY;
+                // 创建棋盘副本进行尝试
+                int[][] boardCopy = new int[board.length][board.length];
+                for (int i = 0; i < board.length; i++) {
+                    boardCopy[i] = board[i].clone();
+                }
+                boardCopy[move.x][move.y] = WHITE;
+                int eval = minimax(boardCopy, depth - 1, alpha, beta, true).score;
                 
                 if (eval < minEval) {
                     minEval = eval;
