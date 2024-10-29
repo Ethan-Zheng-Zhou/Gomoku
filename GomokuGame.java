@@ -16,24 +16,54 @@ public class GomokuGame {
     private final String gameType;
     private final long startTime;
     private boolean isGameEnded = false;
+    private NetworkManager networkManager;
+    private boolean isNetworkGame;
+    private boolean isMyTurn;
     
-    public GomokuGame(boolean isAIGame) {
+    public GomokuGame(String gameMode) {
         board = new int[BOARD_SIZE][BOARD_SIZE];
         currentPlayer = BLACK;
         moves = new ArrayList<>();
         initializeBoard();
-        gameType = isAIGame ? "AI对战" : "玩家对战";
+        
+        switch(gameMode) {
+            case "AI":
+                gameType = "AI对战";
+                isNetworkGame = false;
+                break;
+            case "LOCAL":
+                gameType = "玩家对战";
+                isNetworkGame = false;
+                break;
+            case "HOST":
+                gameType = "网络对战";
+                isNetworkGame = true;
+                networkManager = new NetworkManager();
+                if (networkManager.startServer()) {
+                    isMyTurn = true; // 主机先手
+                }
+                break;
+            case "CLIENT":
+                gameType = "网络对战";
+                isNetworkGame = true;
+                networkManager = new NetworkManager();
+                isMyTurn = false; // 客户端后手
+                break;
+            default:
+                gameType = "玩家对战";
+                isNetworkGame = false;
+                break;
+        }
+        
         startTime = System.currentTimeMillis();
         
-        // 测试数据库连接
-        try {
-            Connection conn = DatabaseConfig.getConnection();
-            System.out.println("数据库连接成功！");
-            conn.close();
-        } catch (SQLException e) {
-            System.err.println("数据库连接失败: " + e.getMessage());
-            e.printStackTrace();
+        if (isNetworkGame) {
+            startNetworkListener();
         }
+    }
+    
+    public GomokuGame(boolean isAIGame) {
+        this(isAIGame ? "AI" : "LOCAL");
     }
     
     private void initializeBoard() {
@@ -52,16 +82,23 @@ public class GomokuGame {
     }
 
     public boolean makeMove(int x, int y) {
+        if (isNetworkGame && !isMyTurn) {
+            return false; // 不是自己的回合
+        }
+        
         if (isValidMove(x, y)) {
             board[x][y] = currentPlayer;
             moves.add(new Move(x, y, currentPlayer == BLACK));
             
-            // 检查是否获胜或平局
+            if (isNetworkGame) {
+                networkManager.sendMove(x, y);
+                isMyTurn = false;
+            }
+            
             if (checkWin(x, y) || isBoardFull()) {
                 return true;
             }
             
-            // 如果游戏未结束，切换玩家
             currentPlayer = (currentPlayer == BLACK) ? WHITE : BLACK;
             return true;
         }
@@ -190,10 +227,12 @@ public class GomokuGame {
     }
 
     public void gameOver(String winner) {
-        if (!isGameEnded) {  // 只有在游戏还没有保存时才保存
+        if (!isGameEnded) {
             System.out.println("游戏结束，获胜者：" + winner);
             saveGameToDatabase(winner);
-            System.out.println("尝试保存游戏记录...");
+            if (isNetworkGame && networkManager != null) {
+                networkManager.close();
+            }
             isGameEnded = true;
         }
     }
@@ -210,5 +249,52 @@ public class GomokuGame {
             return true;
         }
         return false;
+    }
+
+    private void startNetworkListener() {
+        new Thread(() -> {
+            try {
+                while (true) {
+                    String message = networkManager.receiveMove();
+                    if (message.startsWith("MOVE")) {
+                        String[] parts = message.split(" ");
+                        int x = Integer.parseInt(parts[1]);
+                        int y = Integer.parseInt(parts[2]);
+                        SwingUtilities.invokeLater(() -> {
+                            makeNetworkMove(x, y);
+                        });
+                    }
+                }
+            } catch (InterruptedException e) {
+                System.err.println("网络监听器错误: " + e.getMessage());
+            }
+        }).start();
+    }
+
+    private void makeNetworkMove(int x, int y) {
+        if (isValidMove(x, y)) {
+            board[x][y] = currentPlayer;
+            moves.add(new Move(x, y, currentPlayer == BLACK));
+            
+            if (checkWin(x, y) || isBoardFull()) {
+                // 处理游戏结束
+                return;
+            }
+            
+            currentPlayer = (currentPlayer == BLACK) ? WHITE : BLACK;
+            isMyTurn = true;
+        }
+    }
+
+    public NetworkManager getNetworkManager() {
+        return networkManager;
+    }
+
+    public boolean isAIGame() {
+        return gameType.equals("AI对战");
+    }
+
+    public boolean isNetworkGame() {
+        return isNetworkGame;
     }
 }

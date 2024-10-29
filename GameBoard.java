@@ -17,9 +17,8 @@ public class GameBoard extends JFrame {
     private int blackSeconds = 0;
     private int whiteSeconds = 0;
     
-    public GameBoard(boolean isAIGame) {
-        this.isAIGame = isAIGame;
-        game = new GomokuGame(isAIGame);
+    public GameBoard(GomokuGame game) {
+        this.game = game;
         initializeUI();
         startTimer();
     }
@@ -108,8 +107,8 @@ public class GameBoard extends JFrame {
         });
         buttons[4].addActionListener(e -> System.exit(0));
         
-        // 如果是AI对战，禁用悔棋按钮
-        if (isAIGame) {
+        // 如果是AI对战或网络对战，禁用悔棋按钮
+        if (game.isAIGame() || game.isNetworkGame()) {
             buttons[0].setEnabled(false);
         }
         
@@ -176,7 +175,7 @@ public class GameBoard extends JFrame {
             JOptionPane.YES_NO_OPTION);
         if (result == JOptionPane.YES_OPTION) {
             dispose();
-            new GameBoard(isAIGame).setVisible(true);
+            new GameBoard(game).setVisible(true);
         }
     }
     
@@ -211,9 +210,8 @@ public class GameBoard extends JFrame {
                 // 检查获胜条件
                 if (game.checkWin(x, y)) {
                     timer.stop();
-                    // 修改获胜判断：当前玩家下完棋后赢了，所以当前玩家就是获胜者
                     String winner = (game.getCurrentPlayer() == GomokuGame.BLACK) ? "黑方" : "白方";
-                    game.gameOver(winner);  // 先保存游戏
+                    game.gameOver(winner);
                     JOptionPane.showMessageDialog(this, winner + "获胜！");
                     dispose();
                     new StartScreen().setVisible(true);
@@ -223,7 +221,7 @@ public class GameBoard extends JFrame {
                 // 检查平局
                 if (game.isBoardFull()) {
                     timer.stop();
-                    game.gameOver("平局");  // 先保存游戏
+                    game.gameOver("平局");
                     JOptionPane.showMessageDialog(this, "平局！");
                     dispose();
                     new StartScreen().setVisible(true);
@@ -231,7 +229,7 @@ public class GameBoard extends JFrame {
                 }
                 
                 // 更新当前玩家
-                if (isAIGame && game.getCurrentPlayer() == GomokuGame.WHITE) {
+                if (!game.isNetworkGame() && game.isAIGame() && game.getCurrentPlayer() == GomokuGame.WHITE) {
                     makeAIMove();
                 }
             }
