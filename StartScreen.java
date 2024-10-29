@@ -5,7 +5,7 @@ import java.net.URI;
 
 public class StartScreen extends JFrame {
     private static final int WINDOW_WIDTH = 1000;
-    private static final int WINDOW_HEIGHT = 800;
+    private static final int WINDOW_HEIGHT = 700;
     
     public StartScreen() {
         setTitle("五子棋");
@@ -51,7 +51,7 @@ public class StartScreen extends JFrame {
         buttonPanel.setBorder(BorderFactory.createEmptyBorder(30, 0, 30, 0));
         
         // 创建按钮
-        String[] buttonTexts = {"单人对战", "双人对战", "网络对战", "历史记录", "退出游戏"};
+        String[] buttonTexts = {"AI对战", "双人对战", "网络对战", "对局复盘", "退出游戏"};
         Dimension buttonSize = new Dimension(250, 45);
         Font buttonFont = new Font("微软雅黑", Font.PLAIN, 18);
         
