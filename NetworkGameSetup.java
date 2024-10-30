@@ -16,16 +16,30 @@ public class NetworkGameSetup extends JFrame {
         JPanel panel = new JPanel(new GridLayout(3, 1, 10, 10));
         panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
         
+        // 创建IP地址面板
+        JPanel ipPanel = new JPanel(new BorderLayout(5, 5));
+        ipPanel.add(new JLabel("对方IP地址:"), BorderLayout.WEST);
+        
+        // 添加帮助按钮
+        JButton helpButton = new JButton("?");
+        helpButton.setFont(new Font("微软雅黑", Font.PLAIN, 12));
+        helpButton.setPreferredSize(new Dimension(25, 25));
+        helpButton.addActionListener(e -> showIPHelp());
+        ipPanel.add(helpButton, BorderLayout.EAST);
+        
+        // 创建输入框和按钮
         ipField = new JTextField();
         hostButton = new JButton("创建房间");
         joinButton = new JButton("加入房间");
         
-        panel.add(new JLabel("对方IP地址:"));
-        panel.add(ipField);
-        
+        // 创建按钮面板
         JPanel buttonPanel = new JPanel(new GridLayout(1, 2, 10, 0));
         buttonPanel.add(hostButton);
         buttonPanel.add(joinButton);
+        
+        // 添加组件到主面板
+        panel.add(ipPanel);
+        panel.add(ipField);
         panel.add(buttonPanel);
         
         hostButton.addActionListener(e -> {
@@ -38,19 +52,25 @@ public class NetworkGameSetup extends JFrame {
             new Thread(() -> {
                 final GomokuGame game = new GomokuGame("HOST");
                 final AtomicBoolean started = new AtomicBoolean(false);
+                final NetworkManager networkManager = game.getNetworkManager();
                 
-                if (game.getNetworkManager() != null) {
-                    started.set(game.getNetworkManager().startServer());
+                if (networkManager != null) {
+                    started.set(networkManager.startServer());
                 }
                 
                 // 在 EDT 中更新 UI
                 SwingUtilities.invokeLater(() -> {
                     if (started.get()) {
+                        // 显示成功信息和端口号
+                        JOptionPane.showMessageDialog(this,
+                            "房间创建成功，使用端口: " + networkManager.getCurrentPort(),
+                            "创建成功",
+                            JOptionPane.INFORMATION_MESSAGE);
                         dispose();
                         new GameBoard(game).setVisible(true);
                     } else {
                         JOptionPane.showMessageDialog(this,
-                            "创建房间失败，请检查端口是否被占用",
+                            "创建房间失败，所有端口(5000-5010)都被占用\n请稍后重试或联系管理员",
                             "创建失败",
                             JOptionPane.ERROR_MESSAGE);
                             
@@ -106,5 +126,45 @@ public class NetworkGameSetup extends JFrame {
         });
         
         add(panel);
+    }
+    
+    private void showIPHelp() {
+        String helpMessage = 
+            "连接指南：\n\n" +
+            "1. 在同一个局域网内（比如同一个WiFi下）：\n" +
+            "   - 使用局域网IP（在命令行输入ipconfig查看）\n" +
+            "   - 通常是192.168.x.x格式\n\n" +
+            "2. 使用内网穿透工具连接：\n" +
+            "   a) 创建房间的玩家：\n" +
+            "      - 下载并安装ngrok (ngrok.com)\n" +
+            "      - 运行命令：ngrok tcp 5000\n" +
+            "      - 将显示的域名和端口告诉对方\n" +
+            "      例如：若显示 tcp://0.tcp.ngrok.io:12345\n" +
+            "      对方应输入：0.tcp.ngrok.io\n\n" +
+            "   b) 加入房间的玩家：\n" +
+            "      - 直接输入对方提供的域名\n" +
+            "      - 不需要输入端口号\n\n" +
+            "使用ngrok的步骤：\n" +
+            "1. 访问 ngrok.com 注册账号\n" +
+            "2. 下载并安装ngrok\n" +
+            "3. 在命令行运行：ngrok tcp 5000\n" +
+            "4. 将显示的域名告诉对方\n\n" +
+            "注意事项：\n" +
+            "- 确保防火墙允许连接\n" +
+            "- 免费版ngrok每次启动域名会改变\n" +
+            "- 连接成功前请保持ngrok运行";
+
+        JTextArea textArea = new JTextArea(helpMessage);
+        textArea.setEditable(false);
+        textArea.setWrapStyleWord(true);
+        textArea.setLineWrap(true);
+        textArea.setFont(new Font("微软雅黑", Font.PLAIN, 12));
+        textArea.setBackground(new Color(245, 245, 245));
+        
+        JScrollPane scrollPane = new JScrollPane(textArea);
+        scrollPane.setPreferredSize(new Dimension(400, 300));
+        
+        JOptionPane.showMessageDialog(this, scrollPane, 
+            "连接帮助", JOptionPane.INFORMATION_MESSAGE);
     }
 } 

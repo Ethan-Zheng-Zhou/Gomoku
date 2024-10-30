@@ -9,22 +9,38 @@ public class NetworkManager {
     private BufferedReader in;
     private final BlockingQueue<String> messageQueue = new LinkedBlockingQueue<>();
     private boolean isHost;
-    private static final int PORT = 5000;
-    private static final int CONNECTION_TIMEOUT = 10000; // 10秒连接超时
+    private static final int START_PORT = 5000;  // 起始端口
+    private static final int MAX_PORT = 5010;    // 最大尝试端口
+    private static final int CONNECTION_TIMEOUT = 120000; // 10秒连接超时
+    private int currentPort = START_PORT;
     
     public boolean startServer() {
         try {
             // 关闭可能存在的旧连接
             closeConnections();
             
-            serverSocket = new ServerSocket(PORT);
-            serverSocket.setSoTimeout(CONNECTION_TIMEOUT);  // 设置接受连接的超时时间
+            // 尝试不同的端口
+            for (int port = START_PORT; port <= MAX_PORT; port++) {
+                try {
+                    serverSocket = new ServerSocket(port);
+                    currentPort = port;
+                    System.out.println("成功在端口 " + port + " 创建服务器");
+                    break;
+                } catch (BindException e) {
+                    if (port == MAX_PORT) {
+                        throw new IOException("所有端口都被占用");
+                    }
+                    continue;
+                }
+            }
+            
+            serverSocket.setSoTimeout(CONNECTION_TIMEOUT);
             isHost = true;
             System.out.println("等待对手连接...");
             
             try {
                 clientSocket = serverSocket.accept();
-                clientSocket.setSoTimeout(CONNECTION_TIMEOUT);  // 设置数据读取的超时时间
+                clientSocket.setSoTimeout(CONNECTION_TIMEOUT);
                 initializeStreams();
                 System.out.println("对手已连接！");
                 return true;
@@ -45,20 +61,34 @@ public class NetworkManager {
             // 关闭可能存在的旧连接
             closeConnections();
             
-            // 创建新的Socket连接，设置连接超时
-            clientSocket = new Socket();
-            clientSocket.connect(new InetSocketAddress(hostAddress, PORT), CONNECTION_TIMEOUT);
-            clientSocket.setSoTimeout(CONNECTION_TIMEOUT);  // 设置数据读取的超时时间
+            // 解析主机地址（支持域名和IP）
+            InetAddress inetAddress = InetAddress.getByName(hostAddress);
+            System.out.println("正在连接到地址: " + inetAddress.getHostAddress());
             
+            // 尝试不同的端口
+            for (int port = START_PORT; port <= MAX_PORT; port++) {
+                try {
+                    clientSocket = new Socket();
+                    // 使用解析后的地址
+                    clientSocket.connect(new InetSocketAddress(inetAddress, port), CONNECTION_TIMEOUT);
+                    currentPort = port;
+                    System.out.println("成功连接到端口 " + port);
+                    break;
+                } catch (ConnectException | SocketTimeoutException e) {
+                    if (port == MAX_PORT) {
+                        throw new IOException("无法连接到任何可用端口");
+                    }
+                    continue;
+                }
+            }
+            
+            clientSocket.setSoTimeout(CONNECTION_TIMEOUT);
             isHost = false;
             initializeStreams();
             System.out.println("成功连接到服务器！");
             return true;
         } catch (UnknownHostException e) {
             System.err.println("无法解析主机地址: " + e.getMessage());
-            return false;
-        } catch (SocketTimeoutException e) {
-            System.err.println("连接超时");
             return false;
         } catch (IOException e) {
             System.err.println("连接服务器失败: " + e.getMessage());
@@ -140,5 +170,9 @@ public class NetworkManager {
     
     public boolean isConnected() {
         return clientSocket != null && clientSocket.isConnected() && !clientSocket.isClosed();
+    }
+    
+    public int getCurrentPort() {
+        return currentPort;
     }
 } 

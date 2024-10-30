@@ -24,6 +24,8 @@ public class ReplayScreen extends JFrame {
     private JButton autoPlayButton;
     private Timer autoPlayTimer;
     private boolean isAutoPlaying = false;
+    private JButton analysisButton;
+    private JTextArea analysisArea;
     
     public ReplayScreen() {
         setTitle("对局复盘");
@@ -60,8 +62,15 @@ public class ReplayScreen extends JFrame {
     }
     
     private JPanel createLeftPanel() {
-        JPanel panel = new JPanel(new BorderLayout(0, 10));
-        panel.setBorder(BorderFactory.createTitledBorder(
+        // 创建一个包装面板
+        JPanel wrapperPanel = new JPanel(new BorderLayout());
+        
+        // 创建一个垂直分隔面板
+        JSplitPane leftSplitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT);
+        
+        // 创建上半部分面板（对局列表）
+        JPanel upperPanel = new JPanel(new BorderLayout(0, 10));
+        upperPanel.setBorder(BorderFactory.createTitledBorder(
             BorderFactory.createEtchedBorder(), "对局列表",
             TitledBorder.LEFT, TitledBorder.TOP,
             new Font("微软雅黑", Font.BOLD, 14)
@@ -109,10 +118,49 @@ public class ReplayScreen extends JFrame {
         deleteButton.addActionListener(e -> deleteSelectedGame());
         buttonPanel.add(deleteButton);
         
-        panel.add(scrollPane, BorderLayout.CENTER);
-        panel.add(buttonPanel, BorderLayout.SOUTH);
+        upperPanel.add(scrollPane, BorderLayout.CENTER);
+        upperPanel.add(buttonPanel, BorderLayout.SOUTH);
         
-        return panel;
+        // 创建下半部分面板（AI分析）
+        JPanel lowerPanel = new JPanel(new BorderLayout(0, 5));
+        lowerPanel.setBorder(BorderFactory.createTitledBorder(
+            BorderFactory.createEtchedBorder(), "AI点评",
+            TitledBorder.LEFT, TitledBorder.TOP,
+            new Font("微软雅黑", Font.BOLD, 14)
+        ));
+        
+        // 创建分析结果区域
+        analysisArea = new JTextArea();
+        analysisArea.setEditable(false);
+        analysisArea.setWrapStyleWord(true);
+        analysisArea.setLineWrap(true);
+        analysisArea.setFont(new Font("微软雅黑", Font.PLAIN, 14));
+        analysisArea.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
+        
+        JScrollPane analysisScrollPane = new JScrollPane(analysisArea);
+        analysisScrollPane.setPreferredSize(new Dimension(0, 300));
+        analysisScrollPane.setMinimumSize(new Dimension(0, 300));
+        
+        // 创建AI点评按钮面板
+        JPanel analysisButtonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        analysisButton = new JButton("开始分析");
+        analysisButton.setFont(new Font("微软雅黑", Font.PLAIN, 12));
+        analysisButton.addActionListener(e -> showGameAnalysis());
+        analysisButtonPanel.add(analysisButton);
+        
+        lowerPanel.add(analysisScrollPane, BorderLayout.CENTER);
+        lowerPanel.add(analysisButtonPanel, BorderLayout.SOUTH);
+        
+        // 设置分隔面板的组件
+        leftSplitPane.setTopComponent(upperPanel);
+        leftSplitPane.setBottomComponent(lowerPanel);
+        leftSplitPane.setResizeWeight(0.6);
+        leftSplitPane.setDividerLocation(400);
+        
+        // 将分隔面板添加到包装面板中
+        wrapperPanel.add(leftSplitPane, BorderLayout.CENTER);
+        
+        return wrapperPanel;
     }
     
     private JPanel createRightPanel() {
@@ -144,8 +192,8 @@ public class ReplayScreen extends JFrame {
         boardWrapper.add(boardPanel);
         
         // 创建控制面板
-        JPanel controlPanel = new JPanel(new BorderLayout(10, 0));
-        controlPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        JPanel controlPanel = new JPanel(new BorderLayout(5, 5));
+        controlPanel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
         
         // 创建进度条面板
         JPanel progressPanel = new JPanel(new BorderLayout(5, 5));
@@ -173,17 +221,10 @@ public class ReplayScreen extends JFrame {
         autoPlayButton.setFont(buttonFont);
         returnButton.setFont(buttonFont);
         
-        prevButton.addActionListener(e -> showPreviousMove());
-        nextButton.addActionListener(e -> showNextMove());
-        autoPlayButton.addActionListener(e -> toggleAutoPlay());
-        returnButton.addActionListener(e -> {
-            dispose();
-        });
-        
         buttonPanel.add(prevButton);
         buttonPanel.add(autoPlayButton);
         buttonPanel.add(nextButton);
-        buttonPanel.add(Box.createHorizontalStrut(20));  // 添加间隔
+        buttonPanel.add(Box.createHorizontalStrut(20));
         buttonPanel.add(returnButton);
         
         // 创建状态标签
@@ -191,19 +232,29 @@ public class ReplayScreen extends JFrame {
         statusLabel.setFont(new Font("微软雅黑", Font.PLAIN, 14));
         
         // 组装控制面板
-        JPanel controlsContainer = new JPanel();
-        controlsContainer.setLayout(new BoxLayout(controlsContainer, BoxLayout.Y_AXIS));
-        controlsContainer.add(progressPanel);
-        controlsContainer.add(Box.createVerticalStrut(10));
-        controlsContainer.add(buttonPanel);
-        controlsContainer.add(Box.createVerticalStrut(5));
-        controlsContainer.add(statusLabel);
+        JPanel controlsPanel = new JPanel();
+        controlsPanel.setLayout(new BoxLayout(controlsPanel, BoxLayout.Y_AXIS));
+        controlsPanel.add(progressPanel);
+        controlsPanel.add(Box.createVerticalStrut(5));
+        controlsPanel.add(buttonPanel);
+        controlsPanel.add(Box.createVerticalStrut(5));
+        controlsPanel.add(statusLabel);
         
-        controlPanel.add(controlsContainer, BorderLayout.CENTER);
+        controlPanel.add(controlsPanel, BorderLayout.CENTER);
         
-        panel.add(boardWrapper, BorderLayout.CENTER);
-        panel.add(controlPanel, BorderLayout.SOUTH);
+        // 添加事件监听器
+        prevButton.addActionListener(e -> showPreviousMove());
+        nextButton.addActionListener(e -> showNextMove());
+        autoPlayButton.addActionListener(e -> toggleAutoPlay());
+        returnButton.addActionListener(e -> dispose());
         
+        // 使用垂直分隔面板
+        JSplitPane splitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT);
+        splitPane.setTopComponent(boardWrapper);
+        splitPane.setBottomComponent(controlPanel);
+        splitPane.setResizeWeight(0.8); // 设置分隔条的初始位置
+        
+        panel.add(splitPane, BorderLayout.CENTER);
         return panel;
     }
     
@@ -347,6 +398,9 @@ public class ReplayScreen extends JFrame {
         
         updateControlButtons();
         updateStatusLabel();
+        
+        // 清空分析结果
+        analysisArea.setText("");
     }
     
     private void resetBoard() {
@@ -523,5 +577,33 @@ public class ReplayScreen extends JFrame {
             }
         }
         return null;
+    }
+    
+    // 添加显示分析结果的方法
+    private void showGameAnalysis() {
+        if (currentMoves == null || currentMoves.isEmpty()) {
+            JOptionPane.showMessageDialog(this, 
+                "请先选择一局棋局", 
+                "提示", 
+                JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+        
+        // 禁用按钮，显示加载状态
+        analysisButton.setEnabled(false);
+        analysisButton.setText("分析中...");
+        analysisArea.setText("正在请求AI分析...");
+        
+        // 在新线程中请求AI分析
+        new Thread(() -> {
+            String analysis = KimiAPI.getGameAnalysis(currentMoves);
+            
+            // 在EDT中更新UI
+            SwingUtilities.invokeLater(() -> {
+                analysisArea.setText(analysis);
+                analysisButton.setEnabled(true);
+                analysisButton.setText("AI点评");
+            });
+        }).start();
     }
 }

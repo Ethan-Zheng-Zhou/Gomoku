@@ -34,8 +34,8 @@ public class StartScreen extends JFrame {
         logoLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
         
         // 添加标题
-        JLabel titleLabel = new JLabel("五子棋");
-        titleLabel.setFont(new Font("微软雅黑", Font.BOLD, 48));
+        JLabel titleLabel = new JLabel("AI/联网对战五子棋——基于Java与Mysql");
+        titleLabel.setFont(new Font("微软雅黑", Font.BOLD, 24));
         titleLabel.setForeground(new Color(51, 51, 51));
         titleLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
         
@@ -113,7 +113,7 @@ public class StartScreen extends JFrame {
         separator.setAlignmentX(Component.CENTER_ALIGNMENT);
         
         // 创建版权信息
-        JLabel copyrightLabel = new JLabel("© 2024 南京邮电大学计算机学院");
+        JLabel copyrightLabel = new JLabel("© 2024 南京邮电大学计算机学院、软件学院、网络空间安全学院");
         copyrightLabel.setFont(new Font("微软雅黑", Font.PLAIN, 14));
         copyrightLabel.setForeground(new Color(102, 102, 102));
         copyrightLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
