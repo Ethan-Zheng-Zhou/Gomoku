@@ -5,664 +5,328 @@ import java.awt.event.*;
 import java.io.*; 
 import java.net.*; 
   
-import javax.swing.JTextField;
+import javax.swing.*;
 
 import Chess.FIRPointBlack;
 import Chess.FIRPointWhite;
 import Chess.FIRThread; 
   
-public class FIRPad extends Panel implements MouseListener,ActionListener{ 
- // 鼠标是否能使用 
- public boolean isMouseEnabled = false; 
- // 是否胜利 
- public boolean isWinned = false; 
- // 是否在下棋中 
- public boolean isGaming = false; 
- // 棋子的x轴坐标位 
- public int chessX_POS = -1; 
- // 棋子的y轴坐标位 
- public int chessY_POS = -1; 
- // 棋子的颜色 
- public int chessColor = 1; 
- // 黑棋x轴坐标位数组 
- public int chessBlack_XPOS[] = new int[200]; 
- // 黑棋y轴坐标位数组 
- public int chessBlack_YPOS[] = new int[200]; 
- // 白棋x轴坐标位数组 
- public int chessWhite_XPOS[] = new int[200]; 
- // 白棋y轴坐标位数组 
- public int chessWhite_YPOS[] = new int[200]; 
- // 黑棋数量 
- public int chessBlackCount = 0; 
- // 白棋数量 
- public int chessWhiteCount = 0; 
- // 黑棋获胜次数 
- public int chessBlackVicTimes = 0; 
- // 白棋获胜次数 
- public int chessWhiteVicTimes = 0; 
- // 套接口 
- public Socket chessSocket; 
- public DataInputStream inputData; 
- public DataOutputStream outputData; 
- public String chessSelfName = null; 
- public String chessPeerName = null; 
- public String host = null; 
- public int port = 8888; 
- public TextField statusText = new TextField("请连接服务器！"); 
- public FIRThread firThread = new FIRThread(this); 
-  
- public FIRPad() 
- { 
- setSize(440, 440); 
- setLayout(null); 
- setBackground(Color.LIGHT_GRAY); 
- addMouseListener(this); 
- add(statusText); 
- statusText.setBounds(new Rectangle(40, 5, 360, 24)); 
- statusText.setEditable(false); 
- } 
-  
- // 连接到主机 
- public boolean connectServer(String ServerIP, int ServerPort) throws Exception 
- { 
- try
- { 
-  // 取得主机端口 
-  chessSocket = new Socket(ServerIP, ServerPort); 
-  // 取得输入流 
-  inputData = new DataInputStream(chessSocket.getInputStream()); 
-  // 取得输出流 
-  outputData = new DataOutputStream(chessSocket.getOutputStream()); 
-  firThread.start(); 
-  return true; 
- } 
- catch (IOException ex) 
- { 
-  statusText.setText("连接失败! \n"); 
- } 
- return false; 
- } 
-  
- // 设定胜利时的棋盘状态 
- public void setVicStatus(int vicChessColor) 
- { 
- // 清空棋盘 
- this.removeAll(); 
- // 将黑棋的位置设置到零点 
- for (int i = 0; i <= chessBlackCount; i++) 
- { 
-  chessBlack_XPOS[i] = 0; 
-  chessBlack_YPOS[i] = 0; 
- } 
- // 将白棋的位置设置到零点 
- for (int i = 0; i <= chessWhiteCount; i++) 
- { 
-  chessWhite_XPOS[i] = 0; 
-  chessWhite_YPOS[i] = 0; 
- } 
- // 清空棋盘上的黑棋数 
- chessBlackCount = 0; 
- // 清空棋盘上的白棋数 
- chessWhiteCount = 0; 
- add(statusText); 
- statusText.setBounds(40, 5, 360, 24); 
- if (vicChessColor == 1) 
- { // 黑棋胜 
-  chessBlackVicTimes++; 
-  statusText.setText("黑方胜,黑:白 " + chessBlackVicTimes + ":" + chessWhiteVicTimes 
-   + ",游戏重启,等待白方..."); 
- } 
- else if (vicChessColor == -1) 
- { // 白棋胜 
-  chessWhiteVicTimes++; 
-  statusText.setText("白方胜,黑:白 " + chessBlackVicTimes + ":" + chessWhiteVicTimes 
-   + ",游戏重启,等待黑方..."); 
- } 
- } 
-  
- // 取得指定棋子的位置 
- public void setLocation(int xPos, int yPos, int chessColor) 
- { 
- if (chessColor == 1) 
- { // 棋子为黑棋时 
-  chessBlack_XPOS[chessBlackCount] = xPos * 20; 
-  chessBlack_YPOS[chessBlackCount] = yPos * 20; 
-  chessBlackCount++; 
- } 
- else if (chessColor == -1) 
- { // 棋子为白棋时 
-  chessWhite_XPOS[chessWhiteCount] = xPos * 20; 
-  chessWhite_YPOS[chessWhiteCount] = yPos * 20; 
-  chessWhiteCount++; 
- } 
- } 
-  
- // 判断当前状态是否为胜利状态 
- public boolean checkVicStatus(int xPos, int yPos, int chessColor) 
- { 
- int chessLinkedCount = 1; // 连接棋子数 
- int chessLinkedCompare = 1; // 用于比较是否要继续遍历一个棋子的相邻网格 
- int chessToCompareIndex = 0; // 要比较的棋子在数组中的索引位置 
- int closeGrid = 1; // 相邻网格的位置 
- if (chessColor == 1) 
- { // 黑棋时 
-  chessLinkedCount = 1; // 将该棋子自身算入的话，初始连接数为1 
-  //以下每对for循环语句为一组，因为下期的位置能位于中间而非两端 
-  for (closeGrid = 1; closeGrid <= 4; closeGrid++) 
-  { // 遍历相邻4个网格 
-  for (chessToCompareIndex = 0; chessToCompareIndex <= chessBlackCount; chessToCompareIndex++) 
-  { // 遍历棋盘上所有黑棋子 
-   if (((xPos + closeGrid) * 20 == chessBlack_XPOS[chessToCompareIndex]) 
-    && ((yPos * 20) == chessBlack_YPOS[chessToCompareIndex])) 
-   { // 判断当前下的棋子的右边4个棋子是否都为黑棋 
-   chessLinkedCount = chessLinkedCount + 1; // 连接数加1 
-   if (chessLinkedCount == 5) 
-   { // 五子相连时，胜利 
-    return true; 
-   } 
-   } 
-  } 
-  if (chessLinkedCount == (chessLinkedCompare + 1)) { 
-   chessLinkedCompare++; 
-  } 
-  else {// 若中间有一个棋子非黑棋，则会进入此分支，此时无需再遍历 
-   break; 
-  } 
-  } 
-  for (closeGrid = 1; closeGrid <= 4; closeGrid++) 
-  { 
-  for (chessToCompareIndex = 0; chessToCompareIndex <= chessBlackCount; chessToCompareIndex++) 
-  { 
-   if (((xPos - closeGrid) * 20 == chessBlack_XPOS[chessToCompareIndex]) 
-    && (yPos * 20 == chessBlack_YPOS[chessToCompareIndex])) 
-   { // 判断当前下的棋子的左边4个棋子是否都为黑棋 
-   chessLinkedCount++; 
-   if (chessLinkedCount == 5) 
-   { 
-    return true; 
-   } 
-   } 
-  } 
-  if (chessLinkedCount == (chessLinkedCompare + 1)) { 
-   chessLinkedCompare++; 
-  } 
-  else { 
-   break; 
-  } 
-  } 
-  // 进入新的一组for循环时要将连接数等重置 
-  chessLinkedCount = 1; 
-  chessLinkedCompare = 1; 
-  for (closeGrid = 1; closeGrid <= 4; closeGrid++) 
-  { 
-  for (chessToCompareIndex = 0; chessToCompareIndex <= chessBlackCount; chessToCompareIndex++) 
-  { 
-   if ((xPos * 20 == chessBlack_XPOS[chessToCompareIndex]) 
-    && ((yPos + closeGrid) * 20 == chessBlack_YPOS[chessToCompareIndex])) 
-   { // 判断当前下的棋子的上边4个棋子是否都为黑棋 
-   chessLinkedCount++; 
-   if (chessLinkedCount == 5) 
-   { 
-    return true; 
-   } 
-   } 
-  } 
-  if (chessLinkedCount == (chessLinkedCompare + 1)) { 
-   chessLinkedCompare++; 
-  } 
-  else { 
-   break; 
-  } 
-  } 
-  for (closeGrid = 1; closeGrid <= 4; closeGrid++) 
-  { 
-  for (chessToCompareIndex = 0; chessToCompareIndex <= chessBlackCount; chessToCompareIndex++) 
-  { 
-   if ((xPos * 20 == chessBlack_XPOS[chessToCompareIndex]) 
-    && ((yPos - closeGrid) * 20 == chessBlack_YPOS[chessToCompareIndex])) 
-   { // 判断当前下的棋子的下边4个棋子是否都为黑棋 
-   chessLinkedCount++; 
-   if (chessLinkedCount == 5) 
-   { 
-    return true; 
-   } 
-   } 
-  } 
-  if (chessLinkedCount == (chessLinkedCompare + 1)) { 
-   chessLinkedCompare++; 
-  } 
-  else { 
-   break; 
-  } 
-  } 
-  chessLinkedCount = 1; 
-  chessLinkedCompare = 1; 
-  for (closeGrid = 1; closeGrid <= 4; closeGrid++) 
-  { 
-  for (chessToCompareIndex = 0; chessToCompareIndex <= chessBlackCount; chessToCompareIndex++) 
-  { 
-   if (((xPos - closeGrid) * 20 == chessBlack_XPOS[chessToCompareIndex]) 
-    && ((yPos + closeGrid) * 20 == chessBlack_YPOS[chessToCompareIndex])) 
-   { // 判断当前下的棋子的左上方向4个棋子是否都为黑棋 
-   chessLinkedCount++; 
-   if (chessLinkedCount == 5) 
-   { 
-    return true; 
-   } 
-   } 
-  } 
-  if (chessLinkedCount == (chessLinkedCompare + 1)) { 
-   chessLinkedCompare++; 
-  } 
-  else { 
-   break; 
-  } 
-  } 
-  for (closeGrid = 1; closeGrid <= 4; closeGrid++) 
-  { 
-  for (chessToCompareIndex = 0; chessToCompareIndex <= chessBlackCount; chessToCompareIndex++) 
-  { 
-   if (((xPos + closeGrid) * 20 == chessBlack_XPOS[chessToCompareIndex]) 
-    && ((yPos - closeGrid) * 20 == chessBlack_YPOS[chessToCompareIndex])) 
-   { // 判断当前下的棋子的右下方向4个棋子是否都为黑棋 
-   chessLinkedCount++; 
-   if (chessLinkedCount == 5) 
-   { 
-    return true; 
-   } 
-   } 
-  } 
-  if (chessLinkedCount == (chessLinkedCompare + 1)) { 
-   chessLinkedCompare++; 
-  } 
-  else { 
-   break; 
-  } 
-  } 
-  chessLinkedCount = 1; 
-  chessLinkedCompare = 1; 
-  for (closeGrid = 1; closeGrid <= 4; closeGrid++) 
-  { 
-  for (chessToCompareIndex = 0; chessToCompareIndex <= chessBlackCount; chessToCompareIndex++) 
-  { 
-   if (((xPos + closeGrid) * 20 == chessBlack_XPOS[chessToCompareIndex]) 
-    && ((yPos + closeGrid) * 20 == chessBlack_YPOS[chessToCompareIndex])) 
-   { // 判断当前下的棋子的右上方向4个棋子是否都为黑棋 
-   chessLinkedCount++; 
-   if (chessLinkedCount == 5) 
-   { 
-    return true; 
-   } 
-   } 
-  } 
-  if (chessLinkedCount == (chessLinkedCompare + 1)) { 
-   chessLinkedCompare++; 
-  } 
-  else { 
-   break; 
-  } 
-  } 
-  for (closeGrid = 1; closeGrid <= 4; closeGrid++) 
-  { 
-  for (chessToCompareIndex = 0; chessToCompareIndex <= chessBlackCount; chessToCompareIndex++) 
-  { 
-   if (((xPos - closeGrid) * 20 == chessBlack_XPOS[chessToCompareIndex]) 
-    && ((yPos - closeGrid) * 20 == chessBlack_YPOS[chessToCompareIndex])) 
-   { // 判断当前下的棋子的左下方向4个棋子是否都为黑棋 
-   chessLinkedCount++; 
-   if (chessLinkedCount == 5) 
-   { 
-    return true; 
-   } 
-   } 
-  } 
-  if (chessLinkedCount == (chessLinkedCompare + 1)) { 
-   chessLinkedCompare++; 
-  } 
-  else { 
-   break; 
-  } 
-  } 
- } 
- else if (chessColor == -1) 
- { // 白棋时 
-  chessLinkedCount = 1; 
-  for (closeGrid = 1; closeGrid <= 4; closeGrid++) 
-  { 
-  for (chessToCompareIndex = 0; chessToCompareIndex <= chessWhiteCount; chessToCompareIndex++) 
-  { 
-   if (((xPos + closeGrid) * 20 == chessWhite_XPOS[chessToCompareIndex]) 
-    && (yPos * 20 == chessWhite_YPOS[chessToCompareIndex])) 
-   {// 判断当前下的棋子的右边4个棋子是否都为白棋 
-   chessLinkedCount++; 
-   if (chessLinkedCount == 5) 
-   { 
-    return true; 
-   } 
-   } 
-  } 
-  if (chessLinkedCount == (chessLinkedCompare + 1)) { 
-   chessLinkedCompare++; 
-  } 
-  else { 
-   break; 
-  } 
-  } 
-  for (closeGrid = 1; closeGrid <= 4; closeGrid++) 
-  { 
-  for (chessToCompareIndex = 0; chessToCompareIndex <= chessWhiteCount; chessToCompareIndex++) 
-  { 
-   if (((xPos - closeGrid) * 20 == chessWhite_XPOS[chessToCompareIndex]) 
-    && (yPos * 20 == chessWhite_YPOS[chessToCompareIndex])) 
-   {// 判断当前下的棋子的左边4个棋子是否都为白棋 
-   chessLinkedCount++; 
-   if (chessLinkedCount == 5) 
-   { 
-    return true; 
-   } 
-   } 
-  } 
-  if (chessLinkedCount == (chessLinkedCompare + 1)) { 
-   chessLinkedCompare++; 
-  } 
-  else { 
-   break; 
-  } 
-  } 
-  chessLinkedCount = 1; 
-  chessLinkedCompare = 1; 
-  for (closeGrid = 1; closeGrid <= 4; closeGrid++) 
-  { 
-  for (chessToCompareIndex = 0; chessToCompareIndex <= chessWhiteCount; chessToCompareIndex++) 
-  { 
-   if ((xPos * 20 == chessWhite_XPOS[chessToCompareIndex]) 
-    && ((yPos + closeGrid) * 20 == chessWhite_YPOS[chessToCompareIndex])) 
-   {// 判断当前下的棋子的上边4个棋子是否都为白棋 
-   chessLinkedCount++; 
-   if (chessLinkedCount == 5) 
-   { 
-    return true; 
-   } 
-   } 
-  } 
-  if (chessLinkedCount == (chessLinkedCompare + 1)) { 
-   chessLinkedCompare++; 
-  } 
-  else { 
-   break; 
-  } 
-  } 
-  for (closeGrid = 1; closeGrid <= 4; closeGrid++) 
-  { 
-  for (chessToCompareIndex = 0; chessToCompareIndex <= chessWhiteCount; chessToCompareIndex++) 
-  { 
-   if ((xPos * 20 == chessWhite_XPOS[chessToCompareIndex]) 
-    && ((yPos - closeGrid) * 20 == chessWhite_YPOS[chessToCompareIndex])) 
-   {// 判断当前下的棋子的下边4个棋子是否都为白棋 
-   chessLinkedCount++; 
-   if (chessLinkedCount == 5) 
-   { 
-    return true; 
-   } 
-   } 
-  } 
-  if (chessLinkedCount == (chessLinkedCompare + 1)) { 
-   chessLinkedCompare++; 
-  } 
-  else { 
-   break; 
-  } 
-  } 
-  chessLinkedCount = 1; 
-  chessLinkedCompare = 1; 
-  for (closeGrid = 1; closeGrid <= 4; closeGrid++) 
-  { 
-  for (chessToCompareIndex = 0; chessToCompareIndex <= chessWhiteCount; chessToCompareIndex++) 
-  { 
-   if (((xPos - closeGrid) * 20 == chessWhite_XPOS[chessToCompareIndex]) 
-    && ((yPos + closeGrid) * 20 == chessWhite_YPOS[chessToCompareIndex])) 
-   {// 判断当前下的棋子的左上方向4个棋子是否都为白棋 
-   chessLinkedCount++; 
-   if (chessLinkedCount == 5) 
-   { 
-    return true; 
-   } 
-   } 
-  } 
-  if (chessLinkedCount == (chessLinkedCompare + 1)) { 
-   chessLinkedCompare++; 
-  } 
-  else { 
-   break; 
-  } 
-  } 
-  for (closeGrid = 1; closeGrid <= 4; closeGrid++) 
-  { 
-  for (chessToCompareIndex = 0; chessToCompareIndex <= chessWhiteCount; chessToCompareIndex++) 
-  { 
-   if (((xPos + closeGrid) * 20 == chessWhite_XPOS[chessToCompareIndex]) 
-    && ((yPos - closeGrid) * 20 == chessWhite_YPOS[chessToCompareIndex])) 
-   {// 判断当前下的棋子的右下方向4个棋子是否都为白棋 
-   chessLinkedCount++; 
-   if (chessLinkedCount == 5) 
-   { 
-    return true; 
-   } 
-   } 
-  } 
-  if (chessLinkedCount == (chessLinkedCompare + 1)) { 
-   chessLinkedCompare++; 
-  } 
-  else { 
-   break; 
-  } 
-  } 
-  chessLinkedCount = 1; 
-  chessLinkedCompare = 1; 
-  for (closeGrid = 1; closeGrid <= 4; closeGrid++) 
-  { 
-  for (chessToCompareIndex = 0; chessToCompareIndex <= chessWhiteCount; chessToCompareIndex++) 
-  { 
-   if (((xPos + closeGrid) * 20 == chessWhite_XPOS[chessToCompareIndex]) 
-    && ((yPos + closeGrid) * 20 == chessWhite_YPOS[chessToCompareIndex])) 
-   {// 判断当前下的棋子的右上方向4个棋子是否都为白棋 
-   chessLinkedCount++; 
-   if (chessLinkedCount == 5) 
-   { 
-    return true; 
-   } 
-   } 
-  } 
-  if (chessLinkedCount == (chessLinkedCompare + 1)) { 
-   chessLinkedCompare++; 
-  } 
-  else { 
-   break; 
-  } 
-  } 
-  for (closeGrid = 1; closeGrid <= 4; closeGrid++) 
-  { 
-  for (chessToCompareIndex = 0; chessToCompareIndex <= chessWhiteCount; chessToCompareIndex++) 
-  { 
-   if (((xPos - closeGrid) * 20 == chessWhite_XPOS[chessToCompareIndex]) 
-    && ((yPos - closeGrid) * 20 == chessWhite_YPOS[chessToCompareIndex])) 
-   {// 判断当前下的棋子的左下方向4个棋子是否都为白棋 
-   chessLinkedCount++; 
-   if (chessLinkedCount == 5) 
-   { 
-    return (true); 
-   } 
-   } 
-  } 
-  if (chessLinkedCount == (chessLinkedCompare + 1)) { 
-   chessLinkedCompare++; 
-  } 
-  else { 
-   break; 
-  } 
-  } 
- } 
- return false; 
- } 
-  
- // 画棋盘 
- public void paint(Graphics g) 
- { 
- for (int i = 40; i <= 380; i = i + 20) 
- { 
-  g.drawLine(40, i, 400, i); 
- } 
- g.drawLine(40, 400, 400, 400); 
- for (int j = 40; j <= 380; j = j + 20) 
- { 
-  g.drawLine(j, 40, j, 400); 
- } 
- g.drawLine(400, 40, 400, 400); 
- g.fillOval(97, 97, 6, 6); 
- g.fillOval(337, 97, 6, 6); 
- g.fillOval(97, 337, 6, 6); 
- g.fillOval(337, 337, 6, 6); 
- g.fillOval(217, 217, 6, 6); 
- } 
-  
- // 画棋子 
- public void paintFirPoint(int xPos, int yPos, int chessColor) 
- { 
- FIRPointBlack firPBlack = new FIRPointBlack(this); 
- FIRPointWhite firPWhite = new FIRPointWhite(this); 
- if (chessColor == 1 && isMouseEnabled) 
- { // 黑棋 
-  // 设置棋子的位置 
-  setLocation(xPos, yPos, chessColor); 
-  // 取得当前局面状态 
-  isWinned = checkVicStatus(xPos, yPos, chessColor); 
-  if (isWinned == false) 
-  { // 非胜利状态 
-  firThread.sendMessage("/" + chessPeerName + " /chess "
-   + xPos + " " + yPos + " " + chessColor); 
-  this.add(firPBlack); // 将棋子添加到棋盘中 
-  firPBlack.setBounds(xPos * 20 - 7, 
-   yPos * 20 - 7, 16, 16); // 设置棋子边界 
-  statusText.setText("黑(第" + chessBlackCount + "步)"
-   + xPos + " " + yPos + ",轮到白方."); 
-  isMouseEnabled = false; // 将鼠标设为不可用 
-  } 
-  else
-  { // 胜利状态 
-  firThread.sendMessage("/" + chessPeerName + " /chess "
-   + xPos + " " + yPos + " " + chessColor); 
-  this.add(firPBlack); 
-  firPBlack.setBounds(xPos * 20 - 7, 
-   yPos * 20 - 7, 16, 16); 
-  setVicStatus(1); // 调用胜利方法，传入参数为黑棋胜利 
-  isMouseEnabled = false; 
-  } 
- } 
- else if (chessColor == -1 && isMouseEnabled) 
- { // 白棋 
-  setLocation(xPos, yPos, chessColor); 
-  isWinned = checkVicStatus(xPos, yPos, chessColor); 
-  if (isWinned == false) 
-  { 
-  firThread.sendMessage("/" + chessPeerName + " /chess "
-   + xPos + " " + yPos + " " + chessColor); 
-  this.add(firPWhite); 
-  firPWhite.setBounds(xPos * 20 - 7, 
-   yPos * 20 - 7, 16, 16); 
-  statusText.setText("白(第" + chessWhiteCount + "步)"
-   + xPos + " " + yPos + ",轮到黑方."); 
-  isMouseEnabled = false; 
-  } 
-  else
-  { 
-  firThread.sendMessage("/" + chessPeerName + " /chess "
-   + xPos + " " + yPos + " " + chessColor); 
-  this.add(firPWhite); 
-  firPWhite.setBounds(xPos * 20 - 7, 
-   yPos * 20 - 7, 16, 16); 
-  setVicStatus(-1); // 调用胜利方法，传入参数为白棋 
-  isMouseEnabled = false; 
-  } 
- } 
- } 
-  
- // 画网络棋盘 
- public void paintNetFirPoint(int xPos, int yPos, int chessColor) 
- { 
- FIRPointBlack firPBlack = new FIRPointBlack(this); 
- FIRPointWhite firPWhite = new FIRPointWhite(this); 
- setLocation(xPos, yPos, chessColor); 
- if (chessColor == 1) 
- { 
-  isWinned = checkVicStatus(xPos, yPos, chessColor); 
-  if (isWinned == false) 
-  { 
-  this.add(firPBlack); 
-  firPBlack.setBounds(xPos * 20 - 7, 
-   yPos * 20 - 7, 16, 16); 
-  statusText.setText("黑(第" + chessBlackCount + "步)"
-   + xPos + " " + yPos + ",轮到白方."); 
-  isMouseEnabled = true; 
-  } 
-  else
-  { 
-  firThread.sendMessage("/" + chessPeerName + " /victory "
-   + chessColor);//djr 
-  this.add(firPBlack); 
-  firPBlack.setBounds(xPos * 20 - 7, 
-   yPos * 20 - 7, 16, 16); 
-  setVicStatus(1); 
-  isMouseEnabled = true; 
-  } 
- } 
- else if (chessColor == -1) 
- { 
-  isWinned = checkVicStatus(xPos, yPos, chessColor); 
-  if (isWinned == false) 
-  { 
-  this.add(firPWhite); 
-  firPWhite.setBounds(xPos * 20 - 7, 
-   yPos * 20 - 7, 16, 16); 
-  statusText.setText("白(第" + chessWhiteCount + "步)"
-   + xPos + " " + yPos + ",轮到黑方."); 
-  isMouseEnabled = true; 
-  } 
-  else
-  { 
-  firThread.sendMessage("/" + chessPeerName + " /victory "
-   + chessColor); 
-  this.add(firPWhite); 
-  firPWhite.setBounds(xPos * 20 - 7, 
-   yPos * 20 - 7, 16, 16); 
-  setVicStatus(-1); 
-  isMouseEnabled = true; 
-  } 
- } 
- } 
-  
- // 捕获下棋事件 
- public void mousePressed(MouseEvent e) 
- { 
- if (e.getModifiers() == InputEvent.BUTTON1_MASK) 
- { 
-  chessX_POS = (int) e.getX(); 
-  chessY_POS = (int) e.getY(); 
-  int a = (chessX_POS + 10) / 20, b = (chessY_POS + 10) / 20; 
-  if (chessX_POS / 20 < 2 || chessY_POS / 20 < 2
-   || chessX_POS / 20 > 19 || chessY_POS / 20 > 19) 
-  { 
-  // 下棋位置不正确时，不执行任何操作 
-  } 
-  else
-  { 
-  paintFirPoint(a, b, chessColor); // 画棋子 
-  } 
- } 
- } 
-  
- public void mouseReleased(MouseEvent e){} 
- public void mouseEntered(MouseEvent e){} 
- public void mouseExited(MouseEvent e){} 
- public void mouseClicked(MouseEvent e){} 
- public void actionPerformed(ActionEvent e){} 
+public class FIRPad extends JPanel implements MouseListener, ActionListener { 
+    // 保持原有的成员变量
+    public boolean isMouseEnabled = false; 
+    public boolean isWinned = false; 
+    public boolean isGaming = false; 
+    public int chessX_POS = -1; 
+    public int chessY_POS = -1; 
+    public int chessColor = 1; 
+    public int chessBlack_XPOS[] = new int[200]; 
+    public int chessBlack_YPOS[] = new int[200]; 
+    public int chessWhite_XPOS[] = new int[200]; 
+    public int chessWhite_YPOS[] = new int[200]; 
+    public int chessBlackCount = 0; 
+    public int chessWhiteCount = 0; 
+    public int chessBlackVicTimes = 0; 
+    public int chessWhiteVicTimes = 0; 
+    public Socket chessSocket; 
+    public DataInputStream inputData; 
+    public DataOutputStream outputData; 
+    public String chessSelfName = null; 
+    public String chessPeerName = null; 
+    public String host = null; 
+    public int port = 8888; 
+    public JTextField statusText;
+    public FIRThread firThread;
+    
+    private static final int BOARD_SIZE = 15;
+    private static final int CELL_SIZE = 35;
+    private static final int MARGIN = 40;
+    
+    public FIRPad() { 
+        setLayout(null);
+        setBackground(new Color(222, 184, 135));
+        
+        // 创建状态文本框
+        statusText = new JTextField("请连接服务器！");
+        statusText.setEditable(false);
+        statusText.setFont(new Font("微软雅黑", Font.PLAIN, 14));
+        statusText.setHorizontalAlignment(JTextField.CENTER);
+        statusText.setBounds(MARGIN, 5, (BOARD_SIZE + 1) * CELL_SIZE - 2 * MARGIN, 24);
+        add(statusText);
+        
+        // 设置面板大小
+        int totalWidth = (BOARD_SIZE + 2) * CELL_SIZE;
+        int totalHeight = (BOARD_SIZE + 3) * CELL_SIZE;
+        setPreferredSize(new Dimension(totalWidth, totalHeight));
+        setMinimumSize(new Dimension(totalWidth, totalHeight));
+        
+        addMouseListener(this);
+        firThread = new FIRThread(this);
+    }
+    
+    @Override
+    protected void paintComponent(Graphics g) {
+        super.paintComponent(g);
+        drawBoard(g);
+        drawPieces(g);
+    }
+    
+    private void drawBoard(Graphics g) {
+        // 使用抗锯齿
+        Graphics2D g2d = (Graphics2D) g;
+        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        
+        // 绘制棋盘背景
+        g.setColor(new Color(222, 184, 135));
+        g.fillRect(0, 0, getWidth(), getHeight());
+        
+        // 绘制棋盘线
+        g.setColor(Color.BLACK);
+        for (int i = 0; i <= BOARD_SIZE; i++) {
+            // 横线
+            g.drawLine(MARGIN, i * CELL_SIZE + MARGIN, 
+                      BOARD_SIZE * CELL_SIZE + MARGIN, i * CELL_SIZE + MARGIN);
+            // 竖线
+            g.drawLine(i * CELL_SIZE + MARGIN, MARGIN,
+                      i * CELL_SIZE + MARGIN, BOARD_SIZE * CELL_SIZE + MARGIN);
+        }
+        
+        // 绘制天元和星位
+        int dotSize = 6;
+        g.fillOval(8 * CELL_SIZE + MARGIN - dotSize/2, 
+                   8 * CELL_SIZE + MARGIN - dotSize/2, 
+                   dotSize, dotSize);
+        int[] starPoints = {4, 4, 4, 12, 12, 4, 12, 12, 8, 4, 4, 8, 12, 8, 8, 12};
+        for (int i = 0; i < starPoints.length; i += 2) {
+            g.fillOval(starPoints[i] * CELL_SIZE + MARGIN - dotSize/2,
+                      starPoints[i+1] * CELL_SIZE + MARGIN - dotSize/2, 
+                      dotSize, dotSize);
+        }
+    }
+    
+    private void drawPieces(Graphics g) {
+        Graphics2D g2d = (Graphics2D) g;
+        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        
+        int pieceSize = (int)(CELL_SIZE * 0.8);
+        
+        // 绘制黑棋
+        g.setColor(Color.BLACK);
+        for (int i = 0; i < chessBlackCount; i++) {
+            int x = chessBlack_XPOS[i];
+            int y = chessBlack_YPOS[i];
+            g.fillOval(x - pieceSize/2, y - pieceSize/2, pieceSize, pieceSize);
+        }
+        
+        // 绘制白棋
+        for (int i = 0; i < chessWhiteCount; i++) {
+            int x = chessWhite_XPOS[i];
+            int y = chessWhite_YPOS[i];
+            // 先绘制白色填充
+            g.setColor(Color.WHITE);
+            g.fillOval(x - pieceSize/2, y - pieceSize/2, pieceSize, pieceSize);
+            // 再绘制黑色边框
+            g.setColor(Color.BLACK);
+            g.drawOval(x - pieceSize/2, y - pieceSize/2, pieceSize, pieceSize);
+        }
+    }
+
+    // 保持原有的其他方法，但修改坐标计算方式
+    @Override
+    public void mousePressed(MouseEvent e) {
+        if (e.getModifiers() == InputEvent.BUTTON1_MASK && isMouseEnabled) {
+            int x = Math.round((float)(e.getX() - MARGIN) / CELL_SIZE);
+            int y = Math.round((float)(e.getY() - MARGIN) / CELL_SIZE);
+            
+            if (x >= 0 && x < BOARD_SIZE && y >= 0 && y < BOARD_SIZE) {
+                paintFirPoint(x, y, chessColor);
+            }
+        }
+    }
+    
+    // 修改绘制棋子的方法
+    public void paintFirPoint(int xPos, int yPos, int chessColor) {
+        if (chessColor == 1 && isMouseEnabled) {
+            setLocation(xPos, yPos, chessColor);
+            isWinned = checkVicStatus(xPos, yPos, chessColor);
+            
+            if (!isWinned) {
+                firThread.sendMessage("/" + chessPeerName + " /chess " + xPos + " " + yPos + " " + chessColor);
+                statusText.setText("黑(第" + chessBlackCount + "步)" + xPos + " " + yPos + ",轮到白方.");
+                isMouseEnabled = false;
+            } else {
+                firThread.sendMessage("/" + chessPeerName + " /chess " + xPos + " " + yPos + " " + chessColor);
+                setVicStatus(1);
+                isMouseEnabled = false;
+            }
+            repaint();
+        } else if (chessColor == -1 && isMouseEnabled) {
+            setLocation(xPos, yPos, chessColor);
+            isWinned = checkVicStatus(xPos, yPos, chessColor);
+            
+            if (!isWinned) {
+                firThread.sendMessage("/" + chessPeerName + " /chess " + xPos + " " + yPos + " " + chessColor);
+                statusText.setText("白(第" + chessWhiteCount + "步)" + xPos + " " + yPos + ",轮到黑方.");
+                isMouseEnabled = false;
+            } else {
+                firThread.sendMessage("/" + chessPeerName + " /chess " + xPos + " " + yPos + " " + chessColor);
+                setVicStatus(-1);
+                isMouseEnabled = false;
+            }
+            repaint();
+        }
+    }
+    
+    // 修改网络棋子绘制方法
+    public void paintNetFirPoint(int xPos, int yPos, int chessColor) {
+        setLocation(xPos, yPos, chessColor);
+        isWinned = checkVicStatus(xPos, yPos, chessColor);
+        
+        if (chessColor == 1) {
+            if (!isWinned) {
+                statusText.setText("黑(第" + chessBlackCount + "步)" + xPos + " " + yPos + ",轮到白方.");
+                isMouseEnabled = true;
+            } else {
+                firThread.sendMessage("/" + chessPeerName + " /victory " + chessColor);
+                setVicStatus(1);
+                isMouseEnabled = true;
+            }
+        } else {
+            if (!isWinned) {
+                statusText.setText("白(第" + chessWhiteCount + "步)" + xPos + " " + yPos + ",轮到黑方.");
+                isMouseEnabled = true;
+            } else {
+                firThread.sendMessage("/" + chessPeerName + " /victory " + chessColor);
+                setVicStatus(-1);
+                isMouseEnabled = true;
+            }
+        }
+        repaint();
+    }
+
+    // 保持其他方法不变...
+    
+    @Override
+    public void mouseReleased(MouseEvent e) {}
+    @Override
+    public void mouseEntered(MouseEvent e) {}
+    @Override
+    public void mouseExited(MouseEvent e) {}
+    @Override
+    public void mouseClicked(MouseEvent e) {}
+    @Override
+    public void actionPerformed(ActionEvent e) {}
+
+    public boolean connectServer(String ServerIP, int ServerPort) throws Exception {
+        try {
+            // 取得主机端口 
+            chessSocket = new Socket(ServerIP, ServerPort); 
+            // 取得输入流 
+            inputData = new DataInputStream(chessSocket.getInputStream()); 
+            // 取得输出流 
+            outputData = new DataOutputStream(chessSocket.getOutputStream()); 
+            firThread.start();
+            return true;
+        } catch (IOException ex) {
+            statusText.setText("连接失败!");
+        }
+        return false;
+    }
+
+    public void setVicStatus(int vicChessColor) {
+        // 清空棋盘
+        removeAll();
+        // 将黑棋的位置设置到零点
+        for (int i = 0; i <= chessBlackCount; i++) {
+            chessBlack_XPOS[i] = 0;
+            chessBlack_YPOS[i] = 0;
+        }
+        // 将白棋的位置设置到零点
+        for (int i = 0; i <= chessWhiteCount; i++) {
+            chessWhite_XPOS[i] = 0;
+            chessWhite_YPOS[i] = 0;
+        }
+        // 清空棋盘上的黑棋数
+        chessBlackCount = 0;
+        // 清空棋盘上的白棋数
+        chessWhiteCount = 0;
+        add(statusText);
+        statusText.setBounds(40, 5, 360, 24);
+        if (vicChessColor == 1) { // 黑棋胜
+            chessBlackVicTimes++;
+            statusText.setText("黑方胜,黑:白 " + chessBlackVicTimes + ":" + chessWhiteVicTimes
+                    + ",游戏重启,等待白方...");
+        } else if (vicChessColor == -1) { // 白棋胜
+            chessWhiteVicTimes++;
+            statusText.setText("白方胜,黑:白 " + chessBlackVicTimes + ":" + chessWhiteVicTimes
+                    + ",游戏重启,等待黑方...");
+        }
+        repaint();
+    }
+
+    public void setLocation(int xPos, int yPos, int chessColor) {
+        if (chessColor == 1) { // 棋子为黑棋时
+            chessBlack_XPOS[chessBlackCount] = xPos * CELL_SIZE + MARGIN;
+            chessBlack_YPOS[chessBlackCount] = yPos * CELL_SIZE + MARGIN;
+            chessBlackCount++;
+        } else if (chessColor == -1) { // 棋子为白棋时
+            chessWhite_XPOS[chessWhiteCount] = xPos * CELL_SIZE + MARGIN;
+            chessWhite_YPOS[chessWhiteCount] = yPos * CELL_SIZE + MARGIN;
+            chessWhiteCount++;
+        }
+    }
+
+    public boolean checkVicStatus(int xPos, int yPos, int chessColor) {
+        int count;
+        int[][] directions = {
+            {1, 0},  // 水平
+            {0, 1},  // 垂直
+            {1, 1},  // 主对角线
+            {1, -1}  // 副对角线
+        };
+        
+        for (int[] dir : directions) {
+            count = 1;
+            // 正向检查
+            for (int i = 1; i <= 4; i++) {
+                int newX = xPos + dir[0] * i;
+                int newY = yPos + dir[1] * i;
+                if (!isValidPosition(newX, newY)) break;
+                if (!hasSameColorPiece(newX, newY, chessColor)) break;
+                count++;
+            }
+            // 反向检查
+            for (int i = 1; i <= 4; i++) {
+                int newX = xPos - dir[0] * i;
+                int newY = yPos - dir[1] * i;
+                if (!isValidPosition(newX, newY)) break;
+                if (!hasSameColorPiece(newX, newY, chessColor)) break;
+                count++;
+            }
+            if (count >= 5) return true;
+        }
+        return false;
+    }
+
+    private boolean isValidPosition(int x, int y) {
+        return x >= 0 && x < BOARD_SIZE && y >= 0 && y < BOARD_SIZE;
+    }
+
+    private boolean hasSameColorPiece(int x, int y, int targetColor) {
+        if (targetColor == 1) {
+            for (int i = 0; i < chessBlackCount; i++) {
+                if (chessBlack_XPOS[i] == (x + 1) * CELL_SIZE && 
+                    chessBlack_YPOS[i] == (y + 1) * CELL_SIZE) {
+                    return true;
+                }
+            }
+        } else {
+            for (int i = 0; i < chessWhiteCount; i++) {
+                if (chessWhite_XPOS[i] == (x + 1) * CELL_SIZE && 
+                    chessWhite_YPOS[i] == (y + 1) * CELL_SIZE) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
 } 

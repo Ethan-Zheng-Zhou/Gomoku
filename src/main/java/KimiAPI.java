@@ -34,7 +34,7 @@ public class KimiAPI {
             JsonObject systemMessage = new JsonObject();
             systemMessage.addProperty("role", "system");
             systemMessage.addProperty("content", 
-                "你是一个专业的五子棋分析师，请对以下棋局进行分析。分析内容包括：整体局势评估、关键转折点、双方优劣势、以及可以改进的地方。另外，回答的内容不要用Markdown格式。");
+                "你是一个专业的五子棋分析师，请对以下棋局进行分析。分析内容包括：整体局势评估、关键转折点、双方优劣势、以及可以改进的地方。另外，回答的内容不要用Markdown格式,使用纯文本格式回答我。");
             messages.add(systemMessage);
             
             // 构建棋局描述
@@ -96,15 +96,19 @@ public class KimiAPI {
                                 }
                                 
                                 JsonObject jsonResponse = new Gson().fromJson(jsonData, JsonObject.class);
-                                String content = jsonResponse
+                                JsonObject delta = jsonResponse
                                     .getAsJsonArray("choices")
                                     .get(0)
                                     .getAsJsonObject()
-                                    .getAsJsonObject("delta")
-                                    .get("content")
-                                    .getAsString();
+                                    .getAsJsonObject("delta");
                                 
-                                onResponse.accept(content);
+                                // 添加空值检查
+                                if (delta != null && delta.has("content")) {
+                                    String content = delta.get("content").getAsString();
+                                    if (content != null) {
+                                        onResponse.accept(content);
+                                    }
+                                }
                             }
                         }
                         onComplete.run();
