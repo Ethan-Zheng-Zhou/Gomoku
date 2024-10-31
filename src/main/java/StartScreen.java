@@ -1,3 +1,5 @@
+import Chess.FIRClient;
+
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
@@ -28,7 +30,46 @@ public class StartScreen extends JFrame {
         titlePanel.setBackground(new Color(245, 245, 245));
         
         // 添加校徽
-        ImageIcon logoIcon = new ImageIcon("resources/njupt_logo.jpg");
+        ImageIcon logoIcon = null;
+        try {
+            // 尝试从多个可能的路径加载图片
+            String[] possiblePaths = {
+                "resources/njupt_logo.jpg",
+                "src/main/resources/njupt_logo.jpg",
+                "./resources/njupt_logo.jpg",
+                "../resources/njupt_logo.jpg"
+            };
+            
+            for (String path : possiblePaths) {
+                java.io.File file = new java.io.File(path);
+                if (file.exists()) {
+                    logoIcon = new ImageIcon(path);
+                    break;
+                }
+            }
+            
+            // 如果还是找不到图片，尝试从类路径加载
+            if (logoIcon == null || logoIcon.getImageLoadStatus() != MediaTracker.COMPLETE) {
+                java.net.URL imgURL = StartScreen.class.getResource("/njupt_logo.jpg");
+                if (imgURL != null) {
+                    logoIcon = new ImageIcon(imgURL);
+                }
+            }
+            
+            // 如果仍然无法加载图片，使用默认图片或显示错误信息
+            if (logoIcon == null || logoIcon.getImageLoadStatus() != MediaTracker.COMPLETE) {
+                System.err.println("警告：无法加载校徽图片");
+                // 创建一个空白图片作为替代
+                logoIcon = new ImageIcon(new java.awt.image.BufferedImage(400, 80, java.awt.image.BufferedImage.TYPE_INT_RGB));
+            }
+        } catch (Exception e) {
+            System.err.println("加载校徽图片时出错：" + e.getMessage());
+            e.printStackTrace();
+        }
+        
+        System.out.println("当前工作目录：" + System.getProperty("user.dir"));
+        System.out.println("图片加载状态：" + logoIcon.getImageLoadStatus());
+        
         Image scaledImage = logoIcon.getImage().getScaledInstance(400, 80, Image.SCALE_SMOOTH);
         JLabel logoLabel = new JLabel(new ImageIcon(scaledImage));
         logoLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
@@ -92,7 +133,7 @@ public class StartScreen extends JFrame {
         });
         
         ((JButton)buttonPanel.getComponent(4)).addActionListener(e -> {
-            new NetworkGameSetup().setVisible(true);
+            new FIRClient();
         });
         
         ((JButton)buttonPanel.getComponent(6)).addActionListener(e -> {

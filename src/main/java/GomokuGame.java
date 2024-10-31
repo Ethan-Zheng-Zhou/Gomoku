@@ -1,3 +1,5 @@
+import Chess.FIRClient;
+
 import javax.swing.SwingUtilities;
 import java.io.*;
 import java.util.List;
@@ -9,15 +11,14 @@ public class GomokuGame {
     public static final int WHITE = 2;
     public static final int EMPTY = 0;
     
-    private int[][] board;
+    private final int[][] board;
     private int currentPlayer;
-    private List<Move> moves;
+    private final List<Move> moves;
     private static final int BOARD_SIZE = 15;
     private final String gameType;
     private final long startTime;
     private boolean isGameEnded = false;
-    private NetworkManager networkManager;
-    private boolean isNetworkGame;
+    private final boolean isNetworkGame;
     private boolean isMyTurn;
     
     public GomokuGame(String gameMode) {
@@ -38,16 +39,6 @@ public class GomokuGame {
             case "HOST":
                 gameType = "网络对战";
                 isNetworkGame = true;
-                networkManager = new NetworkManager();
-                if (networkManager.startServer()) {
-                    isMyTurn = true; // 主机先手
-                }
-                break;
-            case "CLIENT":
-                gameType = "网络对战";
-                isNetworkGame = true;
-                networkManager = new NetworkManager();
-                isMyTurn = false; // 客户端后手
                 break;
             default:
                 gameType = "玩家对战";
@@ -58,7 +49,7 @@ public class GomokuGame {
         startTime = System.currentTimeMillis();
         
         if (isNetworkGame) {
-            startNetworkListener();
+            new FIRClient();
         }
     }
     
@@ -89,11 +80,6 @@ public class GomokuGame {
         if (isValidMove(x, y)) {
             board[x][y] = currentPlayer;
             moves.add(new Move(x, y, currentPlayer == BLACK));
-            
-            if (isNetworkGame) {
-                networkManager.sendMove(x, y);
-                isMyTurn = false;
-            }
             
             if (checkWin(x, y) || isBoardFull()) {
                 return true;
@@ -230,9 +216,6 @@ public class GomokuGame {
         if (!isGameEnded) {
             System.out.println("游戏结束，获胜者：" + winner);
             saveGameToDatabase(winner);
-            if (isNetworkGame && networkManager != null) {
-                networkManager.close();
-            }
             isGameEnded = true;
         }
     }
@@ -251,26 +234,6 @@ public class GomokuGame {
         return false;
     }
 
-    private void startNetworkListener() {
-        new Thread(() -> {
-            try {
-                while (true) {
-                    String message = networkManager.receiveMove();
-                    if (message.startsWith("MOVE")) {
-                        String[] parts = message.split(" ");
-                        int x = Integer.parseInt(parts[1]);
-                        int y = Integer.parseInt(parts[2]);
-                        SwingUtilities.invokeLater(() -> {
-                            makeNetworkMove(x, y);
-                        });
-                    }
-                }
-            } catch (InterruptedException e) {
-                System.err.println("网络监听器错误: " + e.getMessage());
-            }
-        }).start();
-    }
-
     private void makeNetworkMove(int x, int y) {
         if (isValidMove(x, y)) {
             board[x][y] = currentPlayer;
@@ -286,9 +249,7 @@ public class GomokuGame {
         }
     }
 
-    public NetworkManager getNetworkManager() {
-        return networkManager;
-    }
+
 
     public boolean isAIGame() {
         return gameType.equals("AI对战");
