@@ -124,7 +124,7 @@ public class ReplayScreen extends JFrame {
         // 创建下半部分面板（AI分析）
         JPanel lowerPanel = new JPanel(new BorderLayout(0, 5));
         lowerPanel.setBorder(BorderFactory.createTitledBorder(
-            BorderFactory.createEtchedBorder(), "AI点评",
+            BorderFactory.createEtchedBorder(), "Kimi点评",
             TitledBorder.LEFT, TitledBorder.TOP,
             new Font("微软雅黑", Font.BOLD, 14)
         ));
@@ -143,7 +143,7 @@ public class ReplayScreen extends JFrame {
         
         // 创建AI点评按钮面板
         JPanel analysisButtonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        analysisButton = new JButton("开始分析");
+        analysisButton = new JButton("开始点评");
         analysisButton.setFont(new Font("微软雅黑", Font.PLAIN, 12));
         analysisButton.addActionListener(e -> showGameAnalysis());
         analysisButtonPanel.add(analysisButton);
@@ -592,18 +592,22 @@ public class ReplayScreen extends JFrame {
         // 禁用按钮，显示加载状态
         analysisButton.setEnabled(false);
         analysisButton.setText("分析中...");
-        analysisArea.setText("正在请求AI分析...");
+        analysisArea.setText("");
         
-        // 在新线程中请求AI分析
-        new Thread(() -> {
-            String analysis = KimiAPI.getGameAnalysis(currentMoves);
-            
-            // 在EDT中更新UI
-            SwingUtilities.invokeLater(() -> {
-                analysisArea.setText(analysis);
+        // 使用流式输出
+        KimiAPI.getGameAnalysisStream(
+            currentMoves,
+            // 处理每个响应片段
+            content -> SwingUtilities.invokeLater(() -> {
+                analysisArea.append(content);
+                // 自动滚动到底部
+                analysisArea.setCaretPosition(analysisArea.getDocument().getLength());
+            }),
+            // 分析完成后的处理
+            () -> SwingUtilities.invokeLater(() -> {
                 analysisButton.setEnabled(true);
-                analysisButton.setText("AI点评");
-            });
-        }).start();
+                analysisButton.setText("开始点评");
+            })
+        );
     }
 }

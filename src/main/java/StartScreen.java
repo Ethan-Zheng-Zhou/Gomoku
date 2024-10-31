@@ -66,9 +66,7 @@ public class StartScreen extends JFrame {
             System.err.println("加载校徽图片时出错：" + e.getMessage());
             e.printStackTrace();
         }
-        
-        System.out.println("当前工作目录：" + System.getProperty("user.dir"));
-        System.out.println("图片加载状态：" + logoIcon.getImageLoadStatus());
+
         
         Image scaledImage = logoIcon.getImage().getScaledInstance(400, 80, Image.SCALE_SMOOTH);
         JLabel logoLabel = new JLabel(new ImageIcon(scaledImage));
@@ -160,7 +158,7 @@ public class StartScreen extends JFrame {
         copyrightLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
         
         // 创建作者信息
-        JLabel authorsLabel = new JLabel("作者：周正（UI/人机/数据库） | 周陇（联网对战）");
+        JLabel authorsLabel = new JLabel("作者：周正（UI/AI/数据库） | 周陇（联网对战）");
         authorsLabel.setFont(new Font("微软雅黑", Font.PLAIN, 14));
         authorsLabel.setForeground(new Color(102, 102, 102));
         authorsLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
