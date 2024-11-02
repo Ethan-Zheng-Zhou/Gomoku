@@ -1,16 +1,14 @@
 package Chess;
 import java.io.IOException; 
 import java.util.StringTokenizer; 
-  
-import javax.swing.DefaultListModel; 
-import javax.swing.ListModel; 
+ 
   
 
 
-public class FIRClientThread extends Thread{ 
- public FIRClient firClient; 
+public class ClientThread extends Thread{ 
+ public Client firClient; 
   
- public FIRClientThread(FIRClient firClient) 
+ public ClientThread(Client firClient) 
  { 
  this.firClient = firClient; 
  } 
@@ -23,27 +21,20 @@ public class FIRClientThread extends Thread{
   int userNumber = 0; 
   // 清空客户端用户列表 
   firClient.userListPad.userList.removeAll(); 
-  // 清空客户端用户下拉框 
-  firClient.userInputPad.userChoice.removeAll(); 
-  // 给客户端用户下拉框添加一个选项 
-  firClient.userInputPad.userChoice.addItem("所有用户"); 
-  while (userToken.hasMoreTokens()) 
-  { // 当收到的用户信息列表中存在数据时 
-  String user = (String) userToken.nextToken(" "); // 取得用户信息 
-  if (userNumber > 0 && !user.startsWith("[inchess]")) 
-  { // 用户信息有效时 
-   firClient.userListPad.userList.add(user);// 将用户信息添加到用户列表中 
-   firClient.userInputPad.userChoice.addItem(user); // 将用户信息添加到用户下拉框中 
-  } 
-  userNumber++; 
-  } 
-  firClient.userInputPad.userChoice.setSelectedIndex(0);// 下拉框默认选中所有人 
+while (userToken.hasMoreTokens()) { 
+    String user = userToken.nextToken(" "); // 取得用户信息 
+    if (userNumber > 0 && !user.startsWith("[inchess]")) { 
+        firClient.userListPad.userList.add(user);//对战中用户则不会显示在列表中 
+        // 将用户信息添加到房间列表中 
+       } 
+    userNumber++; 
+} 
  } 
  else if (msgReceived.startsWith("/yourname ")) 
- { // 收到的信息为用户本名时 
+ { // 收到的信息为用户名时 
   firClient.chessClientName = msgReceived.substring(10); // 取得用户本名 
   firClient.setTitle("Java 五子棋客户端 " + "用户名:"
-   + firClient.chessClientName); // 设置程序Frame的标题 
+   + firClient.chessClientName);  
  } 
  else if (msgReceived.equals("/reject")) 
  { // 收到的信息为拒绝用户时 
@@ -107,7 +98,6 @@ public class FIRClientThread extends Thread{
  { 
   while (true) 
   { 
-  // 等待聊天信息，进入wait状态 
   message = firClient.inputStream.readUTF(); 
   dealWithMsg(message); 
   } 

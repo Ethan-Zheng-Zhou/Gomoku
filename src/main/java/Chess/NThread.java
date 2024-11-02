@@ -1,14 +1,14 @@
 package Chess;
 import java.util.StringTokenizer;
 
-import User.FIRPad;
+import User.Pad;
 
 import java.io.IOException; 
 
-public class FIRThread extends Thread{ 
- FIRPad currPad; // 当前线程的棋盘 
+public class NThread extends Thread{ 
+ Pad currPad; // 当前线程的棋盘 
   
- public FIRThread(FIRPad currPad) 
+ public NThread(Pad currPad) 
  { 
  this.currPad = currPad; 
  } 
@@ -35,10 +35,7 @@ public class FIRThread extends Thread{
   currPad.paintNetFirPoint(Integer.parseInt(chessInfo[0]), Integer 
    .parseInt(chessInfo[1]), Integer.parseInt(chessInfo[2])); 
  } 
- else if (msgReceived.startsWith("/yourname ")) 
- { // 收到的信息为改名 
-  currPad.chessSelfName = msgReceived.substring(10); 
- } 
+
  else if (msgReceived.equals("/error")) 
  { // 收到的为错误信息 
   currPad.statusText.setText("用户不存在，请重新加入!"); 

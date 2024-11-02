@@ -7,7 +7,7 @@ import java.awt.event.*;
   
 import javax.swing.JButton; 
 
-public class FIRServer extends Frame implements ActionListener{ 
+public class Server extends Frame implements ActionListener{ 
  JButton clearMsgButton = new JButton("清空列表"); 
  JButton serverStatusButton = new JButton("服务器状态"); 
  JButton closeServerButton = new JButton("关闭服务器"); 
@@ -18,7 +18,7 @@ public class FIRServer extends Frame implements ActionListener{
  Hashtable clientNameHash = new Hashtable(50); //将客户端套接口和客户名绑定 
  Hashtable chessPeerHash = new Hashtable(50); //将游戏创建者和游戏加入者绑定 
   
- public FIRServer() 
+ public Server() 
  { 
  super("Java 五子棋服务器"); 
  setBackground(Color.LIGHT_GRAY); 
@@ -74,16 +74,18 @@ public class FIRServer extends Frame implements ActionListener{
   { 
   // 监听客户端套接口的信息 
   clientSocket = serverSocket.accept(); 
-  serverMsgPanel.msgTextArea.append("已连接用户:" + clientSocket + "\n"); 
+  serverMsgPanel.msgTextArea.append("已连接:" + clientSocket + "\n"); 
   // 建立客户端输出流 
+  String userName = "user";
+   
   DataOutputStream outputData = new DataOutputStream(clientSocket 
    .getOutputStream()); 
   // 将客户端套接口和输出流绑定 
   clientDataHash.put(clientSocket, outputData); 
   // 将客户端套接口和客户名绑定 
-  clientNameHash .put(clientSocket, ("新玩家" + clientAccessNumber++)); 
+  clientNameHash .put(clientSocket, (userName + clientAccessNumber++)); 
   // 创建并运行服务器端线程 
-  FIRServerThread thread = new FIRServerThread(clientSocket, 
+  ServerThread thread = new ServerThread(clientSocket, 
    clientDataHash, clientNameHash, chessPeerHash, serverMsgPanel); 
   thread.start(); 
   } 
@@ -121,6 +123,6 @@ public class FIRServer extends Frame implements ActionListener{
   
  public static void main(String args[]) 
  { 
- FIRServer firServer = new FIRServer(); 
+ Server firServer = new Server(); 
  } 
 } 
