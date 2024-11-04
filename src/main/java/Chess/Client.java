@@ -6,6 +6,8 @@ import java.net.*;
   
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
+import javax.swing.*;
+import javax.swing.border.EmptyBorder;
 
 import User.Pad;
 import User.UserChatPad;
@@ -158,6 +160,7 @@ rightPanel.add(createTitledPanel("", chatScroll), BorderLayout.SOUTH);
    catch (Exception ee){} 
   } 
   dispose(); 
+  dispose(); 
   } 
  }); 
   
@@ -273,6 +276,15 @@ rightPanel.add(createTitledPanel("", chatScroll), BorderLayout.SOUTH);
    firPad.chessSocket.close(); 
   } 
   catch (Exception ee){} 
+  }
+  dispose();
+  try {
+      Class<?> startScreenClass = Class.forName("StartScreen");
+      JFrame startScreen = (JFrame) startScreenClass.getDeclaredConstructor().newInstance();
+      startScreen.setVisible(true);
+  } catch (Exception ex) {
+      ex.printStackTrace();
+  }
   }
   dispose();
   try {

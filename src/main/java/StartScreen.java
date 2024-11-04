@@ -192,6 +192,7 @@ public class StartScreen extends JFrame {
         githubPanel.add(githubLabel);
         
         // 将��件添加到底部面板
+        // 将��件添加到底部面板
         bottomPanel.add(separator);
         bottomPanel.add(Box.createVerticalStrut(15));
         bottomPanel.add(copyrightLabel);
