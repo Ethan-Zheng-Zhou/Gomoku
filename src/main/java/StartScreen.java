@@ -135,9 +135,6 @@ public class StartScreen extends JFrame {
             dispose();
             Client client = new Client();
             client.setVisible(true);
-            dispose();
-            Client client = new Client();
-            client.setVisible(true);
         });
         
         ((JButton)buttonPanel.getComponent(6)).addActionListener(e -> {
@@ -195,7 +192,7 @@ public class StartScreen extends JFrame {
         // 将GitHub链接添加到其面板中
         githubPanel.add(githubLabel);
         
-        // 将��件添加到底部面板
+        // 将件添加到底部面板
         bottomPanel.add(separator);
         bottomPanel.add(Box.createVerticalStrut(15));
         bottomPanel.add(copyrightLabel);
