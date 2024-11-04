@@ -1,4 +1,5 @@
 import Chess.*;
+import Chess.*;
 
 import javax.swing.*;
 import java.awt.*;
@@ -131,6 +132,9 @@ public class StartScreen extends JFrame {
         });
         
         ((JButton)buttonPanel.getComponent(4)).addActionListener(e -> {
+            dispose();
+            Client client = new Client();
+            client.setVisible(true);
             dispose();
             Client client = new Client();
             client.setVisible(true);

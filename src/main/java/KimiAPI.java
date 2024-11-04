@@ -90,7 +90,7 @@ public class KimiAPI {
                         String line;
                         while ((line = reader.readLine()) != null) {
                             if (line.startsWith("data: ")) {
-                                String jsonData = line.substring(6);
+                                String jsonData = line.substring(6).trim();
                                 if ("[DONE]".equals(jsonData)) {
                                     break;
                                 }
