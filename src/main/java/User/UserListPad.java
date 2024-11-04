@@ -1,14 +1,23 @@
 package User;
+
 import java.awt.*;
 
 public class UserListPad extends Panel { 
-    public List userList = new List(10); 
+    public List userList = new List(10);
 
     public UserListPad() { 
-        setLayout(new BorderLayout()); 
-        for (int i = 0; i < 10; i++) { 
-            userList.add(i + "." + "æ— ç”¨æˆ·"); 
-        } 
-        add(userList, BorderLayout.CENTER); 
-    } 
+        setLayout(new BorderLayout());
+        
+        // ÉèÖÃÁÐ±íµÄ±³¾°É«ºÍ×ÖÌå
+        userList.setBackground(Color.WHITE); // ÉèÖÃ±³¾°É«
+        userList.setFont(new Font("Î¢ÈíÑÅºÚ", Font.PLAIN, 14)); // ÉèÖÃ×ÖÌå
+
+        // Ô¤Ìí¼ÓÒ»Ð©Ê¾ÀýÓÃ»§
+        for (int i = 1; i < 11; i++) { 
+            userList.add(i + ". "); 
+        }
+
+        // Ìí¼ÓÁÐ±íµ½Ãæ°åÖÐ
+        add(userList, BorderLayout.CENTER);
+    }
 }

@@ -7,7 +7,7 @@ import java.util.Enumeration;
 import java.util.Hashtable; 
 import java.util.StringTokenizer; 
   
-public class FIRServerThread extends Thread{ 
+public class ServerThread extends Thread{ 
  Socket clientSocket; // 保存客户端套接口信息 
  Hashtable clientDataHash; // 保存客户端端口与输出流对应的Hash 
  Hashtable clientNameHash; // 保存客户端套接口和客户名对应的Hash 
@@ -15,7 +15,7 @@ public class FIRServerThread extends Thread{
  ServerMsgPanel serverMsgPanel; 
  boolean isClientClosed = false; 
   
- public FIRServerThread(Socket clientSocket, Hashtable clientDataHash, 
+ public ServerThread(Socket clientSocket, Hashtable clientDataHash, 
     Hashtable clientNameHash, Hashtable chessPeerHash, 
     ServerMsgPanel server) 
  { 
@@ -28,19 +28,18 @@ public class FIRServerThread extends Thread{
   
  public void dealWithMsg(String msgReceived) 
  { 
- String clientName; 
  String peerName; 
  if (msgReceived.startsWith("/")) 
  { 
   if (msgReceived.equals("/list")) 
-  { // 收到的信息为更新用户列表 
+  { // 收到的信息为更新房间列表 
   Feedback(getUserList()); 
   } 
-  else if (msgReceived.startsWith("/creatgame [inchess]")) 
+  else if (msgReceived.startsWith("/creatgame")) 
   { // 收到的信息为创建游戏 
-  String gameCreaterName = msgReceived.substring(20); //取得服务器名 
+  String gameCreaterName = msgReceived.substring(20); //取得名 
   synchronized (clientNameHash) 
-  { // 将用户端口放到用户列表中 
+  { // 将房间端口放到列表中 
    clientNameHash.put(clientSocket, msgReceived.substring(11)); 
   } 
   synchronized (chessPeerHash) 
@@ -64,7 +63,7 @@ public class FIRServerThread extends Thread{
    userToken = (String) userTokens.nextToken(" "); 
    if (nameIndex >= 1 && nameIndex <= 2) 
    { 
-   playerNames[nameIndex - 1] = userToken; // 取得游戏者命 
+   playerNames[nameIndex - 1] = userToken;
    } 
    nameIndex++; 
   } 
@@ -75,8 +74,7 @@ public class FIRServerThread extends Thread{
   { // 游戏已创建 
    synchronized (clientNameHash) 
    { // 增加游戏加入者的套接口与名称的对应 
-   clientNameHash.put(clientSocket, 
-    ("[inchess]" + gamePaticipantName)); 
+   clientNameHash.put(clientSocket, ("[inchess]" + gamePaticipantName)); 
    } 
    synchronized (chessPeerHash) 
    { // 增加或修改游戏创建者与游戏加入者的名称的对应 
@@ -229,7 +227,7 @@ public class FIRServerThread extends Thread{
  } 
  } 
   
- // 取得用户列表 
+ // 取得房间列表 
  public String getUserList() 
  { 
  String userList = "/userlist"; 
@@ -278,11 +276,11 @@ public class FIRServerThread extends Thread{
   } 
  } 
  synchronized (clientDataHash) 
- { // 删除客户数据 
+ { // 删除用户数据 
   clientDataHash.remove(clientSocket); 
  } 
  synchronized (clientNameHash) 
- { // 删除客户数据 
+ { // 删除用户数据 
   clientNameHash.remove(clientSocket); 
  } 
  sendPublicMsg(getUserList()); 

@@ -1,4 +1,4 @@
-import Chess.FIRClient;
+import Chess.Client;
 
 import javax.swing.SwingUtilities;
 import java.io.*;
@@ -49,7 +49,7 @@ public class GomokuGame {
         startTime = System.currentTimeMillis();
         
         if (isNetworkGame) {
-            new FIRClient();
+            new Client();
         }
     }
     

@@ -34,7 +34,7 @@ public class KimiAPI {
             JsonObject systemMessage = new JsonObject();
             systemMessage.addProperty("role", "system");
             systemMessage.addProperty("content", 
-                "你是一个专业的五子棋分析师，请对以下棋局进行分析。分析内容包括：整体局势评估、关键转折点、双方优劣势、以及可以改进的地方。另外，回答的内容不要用Markdown格式。");
+                "你是一个专业的五子棋分析师，请对以下棋局进行分析。分析内容包括：整体局势评估、关键转折点、双方优劣势、以及可以改进的地方。另外，回答的内容不要用Markdown格式,使用纯文本格式。");
             messages.add(systemMessage);
             
             // 构建棋局描述
@@ -95,16 +95,23 @@ public class KimiAPI {
                                     break;
                                 }
                                 
-                                JsonObject jsonResponse = new Gson().fromJson(jsonData, JsonObject.class);
-                                String content = jsonResponse
-                                    .getAsJsonArray("choices")
-                                    .get(0)
-                                    .getAsJsonObject()
-                                    .getAsJsonObject("delta")
-                                    .get("content")
-                                    .getAsString();
-                                
-                                onResponse.accept(content);
+                                try {
+                                    JsonObject jsonResponse = new Gson().fromJson(jsonData, JsonObject.class);
+                                    JsonObject deltaObject = jsonResponse
+                                        .getAsJsonArray("choices")
+                                        .get(0)
+                                        .getAsJsonObject()
+                                        .getAsJsonObject("delta");
+                                    
+                                    // 检查delta对象中是否包含content字段
+                                    if (deltaObject != null && deltaObject.has("content")) {
+                                        String content = deltaObject.get("content").getAsString();
+                                        onResponse.accept(content);
+                                    }
+                                } catch (Exception e) {
+                                    System.err.println("解析JSON响应时出错: " + e.getMessage());
+                                    continue; // 跳过这一条错误的数据，继续处理下一条
+                                }
                             }
                         }
                         onComplete.run();

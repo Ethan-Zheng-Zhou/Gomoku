@@ -1,4 +1,4 @@
-import Chess.FIRClient;
+import Chess.*;
 
 import javax.swing.*;
 import java.awt.*;
@@ -131,7 +131,9 @@ public class StartScreen extends JFrame {
         });
         
         ((JButton)buttonPanel.getComponent(4)).addActionListener(e -> {
-            new FIRClient();
+            dispose();
+            Client client = new Client();
+            client.setVisible(true);
         });
         
         ((JButton)buttonPanel.getComponent(6)).addActionListener(e -> {
@@ -189,7 +191,7 @@ public class StartScreen extends JFrame {
         // 将GitHub链接添加到其面板中
         githubPanel.add(githubLabel);
         
-        // 将组件添加到底部面板
+        // 将��件添加到底部面板
         bottomPanel.add(separator);
         bottomPanel.add(Box.createVerticalStrut(15));
         bottomPanel.add(copyrightLabel);
