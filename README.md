@@ -103,6 +103,11 @@ private static final String BASE_URL = "https://api.moonshot.cn/v1/chat/completi
 private static final String MODEL = "moonshot-v1-8k";  
 ```
 
+### 启动方法
+
+1. 运行联网对战启动项 Server.java
+2. 运行启动项 GomokuGame.java
+
 ## 关于作者
 
 ### 开发团队
