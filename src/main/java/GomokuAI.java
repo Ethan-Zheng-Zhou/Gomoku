@@ -8,8 +8,8 @@ public class GomokuAI {
     private static final int WHITE = 2;
     private static final int SEARCH_DEPTH = 4;
     private static final int WIN_SCORE = 100000;
-    private static final int MAX_DEPTH = 4; // 将最大搜索深度限制在8层
-    private static final long TIME_LIMIT = 3000; // 10秒时间限制
+    private static final int MAX_DEPTH = 4; // 将最大搜索深度限制在4层
+    private static final long TIME_LIMIT = 3000; // 3秒时间限制
     private long startTime;
     
     // 方向数组，用于检查八个方向
@@ -39,6 +39,7 @@ public class GomokuAI {
         return minimax(boardCopy, MAX_DEPTH, Integer.MIN_VALUE, Integer.MAX_VALUE, true);
     }
     
+    // 极小化极大算法
     private Move minimax(int[][] board, int depth, int alpha, int beta, boolean isMaximizing) {
         // 检查时间限制
         if (System.currentTimeMillis() - startTime > TIME_LIMIT) {
@@ -50,12 +51,13 @@ public class GomokuAI {
             return new Move(-1, -1, evaluate(board));
         }
         
+        // 生成可能的移动
         List<Point> moves = generateMoves(board);
         if (moves.isEmpty()) {
             return new Move(-1, -1, evaluate(board));
         }
         
-        // 启发式排序可能的移动
+        // 排序可能的移动
         moves.sort((a, b) -> evaluateMove(board, b) - evaluateMove(board, a));
         
         Move bestMove = null;
@@ -176,6 +178,14 @@ public class GomokuAI {
         
         return score;
     }
+
+
+    /**
+     * 评估移动的分数
+     * @param board 当前棋盘状态,二维数组表示
+     * @return 该移动的评分,分数越高表示该位置越有价值
+     */
+
     
     private int evaluate(int[][] board) {
         int score = 0;
@@ -196,11 +206,21 @@ public class GomokuAI {
         return score;
     }
     
+    /**
+     * 评估从指定点开始的一条线上的棋型分数
+     * @param board 当前棋盘状态,二维数组表示
+     * @param startX 起始点的X坐标
+     * @param startY 起始点的Y坐标  
+     * @param dx X方向增量,用于确定检查方向(-1,0,1)
+     * @param dy Y方向增量,用于确定检查方向(-1,0,1)
+     * @return 该方向上的棋型评分
+     */
+
     private int evaluateLineFromPoint(int[][] board, int startX, int startY, int dx, int dy) {
         int size = board.length;
         int player = board[startX][startY];
         int count = 1;
-        int blocked = 0;
+        int blocked = 0;// 被封堵的空位数
         
         // 向一个方向检查
         for (int i = 1; i < 5; i++) {
@@ -262,7 +282,7 @@ public class GomokuAI {
             }
         }
         
-        return player == BLACK ? score : -score;
+        return player == BLACK ? score : -score; 
     }
     
     private boolean isGameOver(int[][] board) {

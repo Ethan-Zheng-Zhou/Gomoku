@@ -2,9 +2,15 @@ import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
+// 游戏数据库类，负责游戏记录的保存、加载和删除
+// 提供静态方法来操作数据库
+// 使用DatabaseConfig类来获取数据库连接
 public class GameDatabase {
     public static int saveGame(String gameType, String winner, int duration) {
         String sql = "INSERT INTO game_records (game_type, winner, duration) VALUES (?, ?, ?)";
+
+        // 使用try-with-resources语句来确保Connection和PreparedStatement自动关闭
+        // 使用Statement.RETURN_GENERATED_KEYS选项来获取自动生成的键值，即游戏ID
         try (Connection conn = DatabaseConfig.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             

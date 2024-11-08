@@ -9,7 +9,7 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 
 public class KimiAPI {
-    private static final String API_KEY = "sk-kUdsaxDPwsnCMMH3jsaFfQSXU99VXHXSeWp6CVrKKmt8H0hl";
+    private static final String API_KEY = "输入您自己的api-key";
     private static final String BASE_URL = "https://api.moonshot.cn/v1/chat/completions";
     private static final String MODEL = "moonshot-v1-8k";
     private static final Duration TIMEOUT = Duration.ofSeconds(60);

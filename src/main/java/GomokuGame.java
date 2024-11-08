@@ -65,6 +65,8 @@ public class GomokuGame {
         }
     }
 
+    // 主方法，启动游戏
+    // 使用SwingUtilities.invokeLater来确保在事件调度线程中执行UI操作
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
             StartScreen screen = new StartScreen();
